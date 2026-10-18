@@ -1,0 +1,6 @@
+{
+  "name": "Flowcus",
+  "description": "A calm, minimal, pixel-accurate productivity widget inspired by Figma Flowcus reference.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
