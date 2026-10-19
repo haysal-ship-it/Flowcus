@@ -1,8 +1,8 @@
 import { TaskItem } from '../types';
 
-const TASKS_STORAGE_KEY = 'flowcus_tasks_v4';
-const FOCUS_MINUTES_KEY = 'flowcus_focus_minutes_v4';
-const TIMER_STORAGE_KEY = 'flowcus_timer_v4';
+export const TASKS_STORAGE_KEY = 'flowcus_tasks_v4';
+export const FOCUS_MINUTES_KEY = 'flowcus_focus_minutes_v4';
+export const TIMER_STORAGE_KEY = 'flowcus_timer_v4';
 
 export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
 
@@ -66,12 +66,79 @@ export const getFormattedTodayDate = (): string => {
   return `${weekday}, ${day} ${month} ${year}`;
 };
 
+export const DAY_KEY_STORAGE = 'flowcus_day_key_v4';
+
+export const getMsUntilNextLocalMidnight = (): number => {
+  const now = new Date();
+  const nextMidnight = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    0, 0, 0, 50
+  );
+  return Math.max(1000, nextMidnight.getTime() - now.getTime());
+};
+
+export const getDefaultTimer = (): StoredTimerData => ({
+  status: 'idle',
+  initialDurationSeconds: 1800, // 30 minutes default
+  remainingSeconds: 1800,
+  targetEndTimeMs: null,
+  currentSession: 1,
+  totalSessions: 5,
+  activeTaskId: null,
+  lastUpdatedMs: Date.now(),
+});
+
+export const performDailyReset = (newDayKey: string): void => {
+  try {
+    localStorage.setItem(DAY_KEY_STORAGE, newDayKey);
+    localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify([]));
+    localStorage.setItem(FOCUS_MINUTES_KEY, '0');
+    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(getDefaultTimer()));
+  } catch (err) {
+    console.error('Failed to perform daily reset', err);
+  }
+};
+
+export const checkAndPerformDailyReset = (
+  onReset?: (newDay: string) => void
+): boolean => {
+  const today = getLocalTodayDateString();
+  const storedDay = localStorage.getItem(DAY_KEY_STORAGE);
+  if (!storedDay || storedDay !== today) {
+    performDailyReset(today);
+    onReset?.(today);
+    return true;
+  }
+  return false;
+};
+
+export const simulateNextDayReset = (): void => {
+  const yesterday = new Date(Date.now() - 86400000);
+  const yMonth = String(yesterday.getMonth() + 1).padStart(2, '0');
+  const yDay = String(yesterday.getDate()).padStart(2, '0');
+  const yesterdayStr = `${yesterday.getFullYear()}-${yMonth}-${yDay}`;
+  localStorage.setItem(DAY_KEY_STORAGE, yesterdayStr);
+};
+
 export const loadTasksFromStorage = (): TaskItem[] => {
+  const today = getLocalTodayDateString();
+  const storedDay = localStorage.getItem(DAY_KEY_STORAGE);
+
+  // If opening on a new local calendar day or fresh install:
+  // Automatically clear expired tasks from yesterday and initialize clean empty state for today
+  if (!storedDay || storedDay !== today) {
+    performDailyReset(today);
+    return [];
+  }
+
+  // Same day: restore today's tasks
   try {
     const raw = localStorage.getItem(TASKS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed.map((t: TaskItem) => ({
           ...t,
           durationEst: normalizeTaskDuration(t.durationEst),
@@ -82,7 +149,10 @@ export const loadTasksFromStorage = (): TaskItem[] => {
     console.error('Failed to load tasks from localStorage', err);
   }
 
-  // 5 seed rows enforcing the strictly permitted 15m, 30m, and 60m durations
+  return [];
+};
+
+export const seedReferenceTasks = (): TaskItem[] => {
   const today = getLocalTodayDateString();
   const seedTasks: TaskItem[] = [
     {
@@ -134,7 +204,9 @@ export const loadTasksFromStorage = (): TaskItem[] => {
   ];
 
   try {
+    localStorage.setItem(DAY_KEY_STORAGE, today);
     localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(seedTasks));
+    saveFocusMinutesToday(60);
   } catch (e) {
     // ignore
   }
@@ -144,6 +216,8 @@ export const loadTasksFromStorage = (): TaskItem[] => {
 
 export const saveTasksToStorage = (tasks: TaskItem[]): void => {
   try {
+    const today = getLocalTodayDateString();
+    localStorage.setItem(DAY_KEY_STORAGE, today);
     localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
   } catch (err) {
     console.error('Failed to save tasks to localStorage', err);
@@ -152,6 +226,11 @@ export const saveTasksToStorage = (tasks: TaskItem[]): void => {
 
 export const getFocusMinutesToday = (): number => {
   try {
+    const today = getLocalTodayDateString();
+    const storedDay = localStorage.getItem(DAY_KEY_STORAGE);
+    if (!storedDay || storedDay !== today) {
+      return 0;
+    }
     const raw = localStorage.getItem(FOCUS_MINUTES_KEY);
     if (raw) {
       const parsed = parseInt(raw, 10);
@@ -160,7 +239,7 @@ export const getFocusMinutesToday = (): number => {
   } catch (e) {
     // ignore
   }
-  return 60; // 60 min focused from reference
+  return 0;
 };
 
 export const saveFocusMinutesToday = (minutes: number): void => {
@@ -175,16 +254,14 @@ export const loadTimerFromStorage = (): {
   timer: StoredTimerData;
   completedMinutesToAdd: number;
 } => {
-  const defaultTimer: StoredTimerData = {
-    status: 'idle',
-    initialDurationSeconds: 1800, // 30 minutes default (matching active task-2 '30m')
-    remainingSeconds: 1800,
-    targetEndTimeMs: null,
-    currentSession: 2,
-    totalSessions: 5,
-    activeTaskId: 'task-2',
-    lastUpdatedMs: Date.now(),
-  };
+  const defaultTimer: StoredTimerData = getDefaultTimer();
+  const today = getLocalTodayDateString();
+  const storedDay = localStorage.getItem(DAY_KEY_STORAGE);
+
+  // If new day, return default clean timer state with no stale task reference
+  if (!storedDay || storedDay !== today) {
+    return { timer: defaultTimer, completedMinutesToAdd: 0 };
+  }
 
   try {
     const raw = localStorage.getItem(TIMER_STORAGE_KEY);
@@ -198,9 +275,9 @@ export const loadTimerFromStorage = (): {
       typeof parsed.initialDurationSeconds === 'number' && parsed.initialDurationSeconds >= 60
         ? parsed.initialDurationSeconds
         : 1800;
-    const currentSession = typeof parsed.currentSession === 'number' ? parsed.currentSession : 2;
+    const currentSession = typeof parsed.currentSession === 'number' ? parsed.currentSession : 1;
     const totalSessions = typeof parsed.totalSessions === 'number' ? parsed.totalSessions : 5;
-    const activeTaskId = typeof parsed.activeTaskId === 'string' ? parsed.activeTaskId : 'task-2';
+    const activeTaskId = typeof parsed.activeTaskId === 'string' ? parsed.activeTaskId : null;
 
     if (parsed.status === 'running' && parsed.targetEndTimeMs) {
       const now = Date.now();

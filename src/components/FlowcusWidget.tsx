@@ -11,41 +11,57 @@ import {
   StoredTimerData,
   normalizeTaskDuration,
   taskDurationToSeconds,
+  checkAndPerformDailyReset,
+  getMsUntilNextLocalMidnight,
+  DAY_KEY_STORAGE,
+  TASKS_STORAGE_KEY,
+  FOCUS_MINUTES_KEY,
+  getDefaultTimer,
+  performDailyReset,
+  seedReferenceTasks,
 } from '../utils/taskStorage';
 import { DailyProgress } from './DailyProgress';
 import { ViewSwitcher, FlowcusView } from './ViewSwitcher';
 import { TasksView } from './TasksView';
 import { FocusView } from './FocusView';
+import { SplashScreen } from './SplashScreen';
 
 export type ReferenceState = 'tasks-default' | 'add-task' | 'focus-idle' | 'focus-running';
 
-interface FlowcusWidgetProps {
+export interface FlowcusWidgetProps {
   activeReferenceState?: ReferenceState;
   onChangeReferenceState?: (state: ReferenceState) => void;
+  replaySplashTrigger?: number;
+  sampleTasksTrigger?: number;
+  resetDayTrigger?: number;
 }
 
 export const getActiveTask = (allTasks: TaskItem[], activeTaskId: string | null): TaskItem | null => {
   if (activeTaskId) {
     const found = allTasks.find(t => t.id === activeTaskId);
-    if (found) return found;
+    if (found && !found.completed) return found;
   }
-  return allTasks.find(t => t.inProgress) || allTasks.find(t => !t.completed) || allTasks[0] || null;
+  return allTasks.find(t => t.inProgress && !t.completed) || allTasks.find(t => !t.completed) || null;
 };
 
 export const getTaskDurationSeconds = (task: TaskItem | null | undefined): number => {
-  if (!task) return 1800; // 30 minutes default
+  if (!task || task.completed) return 0; // Empty focus state displays 00:00
   return taskDurationToSeconds(task.durationEst);
 };
 
 export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
   activeReferenceState,
   onChangeReferenceState,
+  replaySplashTrigger,
+  sampleTasksTrigger,
+  resetDayTrigger,
 }) => {
   const [currentView, setCurrentView] = useState<FlowcusView>('tasks');
   const [isAddFormOpen, setIsAddFormOpen] = useState<boolean>(false);
   const [tasks, setTasks] = useState<TaskItem[]>(() => loadTasksFromStorage());
   const [justAddedTaskId, setJustAddedTaskId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<string>('');
+  const [isSplashDone, setIsSplashDone] = useState<boolean>(false);
 
   // Initial load of timer and focused minutes with deterministic recovery
   const [timerState, setTimerState] = useState<StoredTimerData>(() => {
@@ -65,6 +81,94 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
   });
 
   const todayDateString = getLocalTodayDateString();
+
+  // Replay splash trigger
+  useEffect(() => {
+    if (replaySplashTrigger && replaySplashTrigger > 0) {
+      setIsSplashDone(false);
+    }
+  }, [replaySplashTrigger]);
+
+  // Seed sample tasks trigger
+  useEffect(() => {
+    if (sampleTasksTrigger && sampleTasksTrigger > 0) {
+      const seeded = seedReferenceTasks();
+      setTasks(seeded);
+      setFocusedMinutes(60);
+      setAnnouncement('Sample reference tasks loaded for today.');
+    }
+  }, [sampleTasksTrigger]);
+
+  // Daily reset trigger
+  useEffect(() => {
+    if (resetDayTrigger && resetDayTrigger > 0) {
+      performDailyReset(getLocalTodayDateString());
+      setTasks([]);
+      setFocusedMinutes(0);
+      setTimerState(getDefaultTimer());
+      setIsAddFormOpen(false);
+      setAnnouncement('Daily reset executed: task list and progress cleared.');
+    }
+  }, [resetDayTrigger]);
+
+  // Daily lifecycle monitor: scheduled midnight timeout + wake-up / focus recheck + storage sync
+  useEffect(() => {
+    let timeoutId: number | null = null;
+
+    const scheduleMidnightCheck = () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      const msUntilMidnight = getMsUntilNextLocalMidnight();
+      timeoutId = window.setTimeout(() => {
+        handleDateValidation();
+        scheduleMidnightCheck();
+      }, msUntilMidnight);
+    };
+
+    const handleDateValidation = () => {
+      checkAndPerformDailyReset((newDayKey) => {
+        setTasks([]);
+        setFocusedMinutes(0);
+        setTimerState(getDefaultTimer());
+        setIsAddFormOpen(false);
+        setAnnouncement(`New day started (${newDayKey}). Tasks and daily progress have been reset.`);
+      });
+    };
+
+    scheduleMidnightCheck();
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleDateValidation();
+      }
+    };
+    const onWindowFocus = () => {
+      handleDateValidation();
+    };
+
+    const onStorageChange = (e: StorageEvent) => {
+      if (e.key === DAY_KEY_STORAGE) {
+        handleDateValidation();
+      } else if (e.key === TASKS_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setTasks(parsed);
+        } catch (err) {}
+      } else if (e.key === FOCUS_MINUTES_KEY && e.newValue) {
+        setFocusedMinutes(parseInt(e.newValue, 10) || 0);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('focus', onWindowFocus);
+    window.addEventListener('storage', onStorageChange);
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', onWindowFocus);
+      window.removeEventListener('storage', onStorageChange);
+    };
+  }, []);
 
   // Save tasks to local storage
   useEffect(() => {
@@ -110,20 +214,46 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
     }
   }, [activeReferenceState]);
 
-  // Synchronize idle timer duration with the active task's duration
+  // Synchronize idle timer duration with the active task's duration or enforce 00:00 empty state
   useEffect(() => {
-    if (timerState.status === 'idle') {
-      const active = getActiveTask(tasks, timerState.activeTaskId);
-      const activeSecs = getTaskDurationSeconds(active);
-      if (timerState.initialDurationSeconds !== activeSecs || timerState.remainingSeconds !== activeSecs) {
+    const incompleteTasks = tasks.filter(t => !t.completed);
+    const hasEligible = incompleteTasks.length > 0;
+
+    if (!hasEligible) {
+      // Empty focus state: enforce 00:00, idle, and no active task
+      if (
+        timerState.status !== 'idle' ||
+        timerState.remainingSeconds !== 0 ||
+        timerState.initialDurationSeconds !== 0 ||
+        timerState.activeTaskId !== null ||
+        timerState.targetEndTimeMs !== null
+      ) {
         setTimerState(curr => ({
           ...curr,
+          status: 'idle',
+          activeTaskId: null,
+          targetEndTimeMs: null,
+          initialDurationSeconds: 0,
+          remainingSeconds: 0,
+        }));
+      }
+    } else if (timerState.status === 'idle') {
+      const active = getActiveTask(tasks, timerState.activeTaskId);
+      const activeSecs = getTaskDurationSeconds(active);
+      if (
+        timerState.initialDurationSeconds !== activeSecs ||
+        timerState.remainingSeconds !== activeSecs ||
+        timerState.activeTaskId !== (active ? active.id : null)
+      ) {
+        setTimerState(curr => ({
+          ...curr,
+          activeTaskId: active ? active.id : null,
           initialDurationSeconds: activeSecs,
           remainingSeconds: activeSecs,
         }));
       }
     }
-  }, [tasks, timerState.activeTaskId, timerState.status]);
+  }, [tasks, timerState.activeTaskId, timerState.status, timerState.remainingSeconds, timerState.initialDurationSeconds, timerState.targetEndTimeMs]);
 
   // Drift-resistant timer interval calculation
   useEffect(() => {
@@ -142,6 +272,27 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
           return nextMins;
         });
 
+        // Automatically mark active task as completed
+        const activeId = timerState.activeTaskId;
+        let nextCandidateId: string | null = null;
+        setTasks(prevTasks => {
+          const updated = prevTasks.map(t => {
+            if ((activeId && t.id === activeId) || (!activeId && t.inProgress)) {
+              return {
+                ...t,
+                completed: true,
+                inProgress: false,
+                completedAt: new Date().toISOString(),
+              };
+            }
+            return t;
+          });
+          const nextIncomplete = updated.find(t => !t.completed);
+          nextCandidateId = nextIncomplete ? nextIncomplete.id : null;
+          saveTasksToStorage(updated);
+          return updated;
+        });
+
         const nextSession =
           timerState.currentSession < timerState.totalSessions
             ? timerState.currentSession + 1
@@ -150,6 +301,7 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
         const nextTimer: StoredTimerData = {
           ...timerState,
           status: 'completed',
+          activeTaskId: nextCandidateId,
           remainingSeconds: timerState.initialDurationSeconds,
           targetEndTimeMs: null,
           currentSession: nextSession,
@@ -158,7 +310,7 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
         setTimerState(nextTimer);
         saveTimerToStorage(nextTimer);
-        setAnnouncement('Focus session completed! Daily progress updated.');
+        setAnnouncement('Focus session completed! Task marked completed and daily progress updated.');
       } else {
         const remainingSecs = Math.max(0, Math.ceil(diffMs / 1000));
         setTimerState(prev => {
@@ -173,7 +325,7 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
     }, 250);
 
     return () => clearInterval(intervalId);
-  }, [timerState.status, timerState.targetEndTimeMs, timerState.initialDurationSeconds, timerState.currentSession, timerState.totalSessions]);
+  }, [timerState.status, timerState.targetEndTimeMs, timerState.initialDurationSeconds, timerState.currentSession, timerState.totalSessions, timerState.activeTaskId]);
 
   // Filter tasks for today
   const todayTasks = tasks.filter(t => t.targetDate === todayDateString);
@@ -187,7 +339,6 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
       const updated = prev.map(task => {
         if (task.id === id) {
           const nextCompleted = !task.completed;
-          // Prevent completed task from remaining active focus task unless explicitly selected again
           const nextInProgress = nextCompleted ? false : task.inProgress;
           if (nextCompleted && task.inProgress) {
             clearedActive = true;
@@ -204,17 +355,28 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
         return task;
       });
 
-      if (clearedActive) {
-        // Find next incomplete candidate
-        const nextCandidate = updated.find(t => !t.completed);
+      const nextCandidates = updated.filter(t => !t.completed);
+      if (nextCandidates.length === 0) {
+        // All tasks completed: Focus enters empty state (00:00, idle, no active task)
+        setTimerState(curr => ({
+          ...curr,
+          status: 'idle',
+          activeTaskId: null,
+          targetEndTimeMs: null,
+          initialDurationSeconds: 0,
+          remainingSeconds: 0,
+        }));
+      } else if (clearedActive || !updated.some(t => t.id === timerState.activeTaskId && !t.completed)) {
+        const nextCandidate = nextCandidates[0];
         const nextActiveId = nextCandidate ? nextCandidate.id : null;
         const nextSecs = getTaskDurationSeconds(nextCandidate);
         setTimerState(curr => ({
           ...curr,
           activeTaskId: nextActiveId,
-          ...(curr.status === 'idle' || curr.status === 'completed'
-            ? { initialDurationSeconds: nextSecs, remainingSeconds: nextSecs, targetEndTimeMs: null }
-            : { initialDurationSeconds: nextSecs }),
+          status: 'idle',
+          initialDurationSeconds: nextSecs,
+          remainingSeconds: nextSecs,
+          targetEndTimeMs: null,
         }));
       }
 
@@ -224,6 +386,8 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
   const handleAddTask = (title: string, duration?: string) => {
     const validDuration = normalizeTaskDuration(duration || '30m');
+    const wasEmpty = tasks.filter(t => !t.completed).length === 0;
+
     const newTask: TaskItem = {
       id: `task-${Date.now()}`,
       title,
@@ -234,7 +398,22 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
       createdAt: new Date().toISOString(),
     };
 
-    setTasks(prev => [...prev, newTask]); // Append task preserving existing order
+    setTasks(prev => {
+      const updated = [...prev, newTask];
+      if (wasEmpty) {
+        const secs = taskDurationToSeconds(validDuration);
+        setTimerState(curr => ({
+          ...curr,
+          status: 'idle',
+          activeTaskId: newTask.id,
+          initialDurationSeconds: secs,
+          remainingSeconds: secs,
+          targetEndTimeMs: null,
+        }));
+      }
+      return updated;
+    });
+
     setJustAddedTaskId(newTask.id);
     setIsAddFormOpen(false);
     setAnnouncement(`Task "${title}" added to list.`);
@@ -246,7 +425,33 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
   const handleDeleteTask = (id: string) => {
     const target = tasks.find(t => t.id === id);
-    setTasks(prev => prev.filter(t => t.id !== id));
+    setTasks(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      const remainingIncompletes = updated.filter(t => !t.completed);
+      if (remainingIncompletes.length === 0) {
+        setTimerState(curr => ({
+          ...curr,
+          status: 'idle',
+          activeTaskId: null,
+          targetEndTimeMs: null,
+          initialDurationSeconds: 0,
+          remainingSeconds: 0,
+        }));
+      } else if (timerState.activeTaskId === id) {
+        const nextActive = remainingIncompletes[0];
+        const nextSecs = getTaskDurationSeconds(nextActive);
+        setTimerState(curr => ({
+          ...curr,
+          activeTaskId: nextActive.id,
+          status: 'idle',
+          initialDurationSeconds: nextSecs,
+          remainingSeconds: nextSecs,
+          targetEndTimeMs: null,
+        }));
+      }
+      return updated;
+    });
+
     if (target) {
       setAnnouncement(`Task "${target.title}" deleted.`);
     }
@@ -320,8 +525,12 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
   // Timer controls
   const handleStartFocus = () => {
+    const eligible = tasks.filter(t => !t.completed);
+    if (eligible.length === 0) return; // Guard: Cannot start focus in empty state
+
     const now = Date.now();
     const active = getActiveTask(tasks, timerState.activeTaskId);
+    if (!active) return;
     const taskSeconds = getTaskDurationSeconds(active);
 
     // If starting fresh (idle or completed, or remainingSeconds <= 0), start full task countdown
@@ -333,6 +542,7 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
     const nextTimer: StoredTimerData = {
       ...timerState,
       status: 'running',
+      activeTaskId: active.id,
       initialDurationSeconds: taskSeconds,
       remainingSeconds: duration,
       targetEndTimeMs: now + duration * 1000,
@@ -362,6 +572,9 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
   };
 
   const handleResumeFocus = () => {
+    const eligible = tasks.filter(t => !t.completed);
+    if (eligible.length === 0) return; // Guard: Cannot resume in empty state
+
     const now = Date.now();
     const duration = timerState.remainingSeconds > 0 ? timerState.remainingSeconds : timerState.initialDurationSeconds;
     const nextTimer: StoredTimerData = {
@@ -377,12 +590,17 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
   };
 
   const handleResetFocus = () => {
+    const eligible = tasks.filter(t => !t.completed);
+    if (eligible.length === 0) return; // Guard: Cannot reset in empty state
+
     const now = Date.now();
     const active = getActiveTask(tasks, timerState.activeTaskId);
+    if (!active) return;
     const taskSeconds = getTaskDurationSeconds(active);
     const nextTimer: StoredTimerData = {
       ...timerState,
       status: 'idle',
+      activeTaskId: active.id,
       initialDurationSeconds: taskSeconds,
       remainingSeconds: taskSeconds,
       targetEndTimeMs: null,
@@ -412,54 +630,66 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
   return (
     <div className="flowcus-shell-container">
-      {/* Polite live accessibility announcement region */}
-      <div className="sr-only" role="status" aria-live="polite">
-        {announcement}
-      </div>
+      {/* 1. Figma-Inspired Intro Splash Screen */}
+      {!isSplashDone && (
+        <SplashScreen onFinish={() => setIsSplashDone(true)} />
+      )}
 
-      {/* Surface 1: Daily Progress Panel (~410 x 144px, 22px radius, shared between tabs) */}
-      <DailyProgress
-        completedTasks={completedTodayTasks}
-        totalTasks={totalTodayTasks}
-        focusedMinutes={focusedMinutes}
-      />
+      {/* 2. Flowcus Widget Content (Crossfades smoothly with Splash Screen) */}
+      <div
+        className={`flowcus-widget-content-wrap ${!isSplashDone ? 'splash-active' : ''}`}
+        aria-hidden={!isSplashDone}
+      >
+        {/* Polite live accessibility announcement region */}
+        <div className="sr-only" role="status" aria-live="polite">
+          {announcement}
+        </div>
 
-      {/* Surface 2: Lower Content Panel (~410px wide, 22px radius) */}
-      <section className="flowcus-lower-panel" aria-label="Tasks and Focus Controls">
-        {/* Segmented Tasks / Focus selector: ~378 x 57px, 36px radius sliding pill */}
-        <ViewSwitcher
-          currentView={currentView}
-          onSelectView={handleSelectView}
+        {/* Surface 1: Daily Progress Panel (~410 x 144px, 22px radius, shared between tabs) */}
+        <DailyProgress
+          completedTasks={completedTodayTasks}
+          totalTasks={totalTodayTasks}
+          focusedMinutes={focusedMinutes}
         />
 
-        <div className="flowcus-panel-content">
-          <div key={currentView} className="flowcus-view-fade">
-            {currentView === 'tasks' ? (
-              <TasksView
-                tasks={todayTasks}
-                onToggleComplete={handleToggleComplete}
-                onAddTask={handleAddTask}
-                onDeleteTask={handleDeleteTask}
-                onEditTask={handleEditTask}
-                onToggleFocus={handleToggleFocus}
-                justAddedTaskId={justAddedTaskId}
-                isAddFormOpen={isAddFormOpen}
-                onToggleAddForm={handleToggleAddForm}
-              />
-            ) : (
-              <FocusView
-                tasks={todayTasks}
-                timerState={timerState}
-                onStartFocus={handleStartFocus}
-                onPauseFocus={handlePauseFocus}
-                onResumeFocus={handleResumeFocus}
-                onResetFocus={handleResetFocus}
-                onSelectActiveTask={handleToggleFocus}
-              />
-            )}
+        {/* Surface 2: Lower Content Panel (~410px wide, 22px radius) */}
+        <section className="flowcus-lower-panel" aria-label="Tasks and Focus Controls">
+          {/* Segmented Tasks / Focus selector: ~378 x 57px, 36px radius sliding pill */}
+          <ViewSwitcher
+            currentView={currentView}
+            onSelectView={handleSelectView}
+          />
+
+          <div className="flowcus-panel-content">
+            <div key={currentView} className="flowcus-view-fade">
+              {currentView === 'tasks' ? (
+                <TasksView
+                  tasks={todayTasks}
+                  onToggleComplete={handleToggleComplete}
+                  onAddTask={handleAddTask}
+                  onDeleteTask={handleDeleteTask}
+                  onEditTask={handleEditTask}
+                  onToggleFocus={handleToggleFocus}
+                  justAddedTaskId={justAddedTaskId}
+                  isAddFormOpen={isAddFormOpen}
+                  onToggleAddForm={handleToggleAddForm}
+                />
+              ) : (
+                <FocusView
+                  tasks={todayTasks}
+                  timerState={timerState}
+                  onStartFocus={handleStartFocus}
+                  onPauseFocus={handlePauseFocus}
+                  onResumeFocus={handleResumeFocus}
+                  onResetFocus={handleResetFocus}
+                  onSelectActiveTask={handleToggleFocus}
+                  focusedMinutesToday={focusedMinutes}
+                />
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 };

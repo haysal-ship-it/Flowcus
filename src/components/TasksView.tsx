@@ -101,20 +101,80 @@ export const TasksView: React.FC<TasksViewProps> = ({
         </div>
       </div>
 
-      {/* Task List: 378px wide, subtle row dividers */}
-      <div className="flowcus-task-list" role="list" aria-label="Today’s Tasks">
-        {tasks.map(task => (
-          <TaskRow
-            key={task.id}
-            task={task}
-            onToggleComplete={onToggleComplete}
-            onDelete={onDeleteTask}
-            onEdit={onEditTask}
-            onToggleFocus={onToggleFocus}
-            isJustAdded={justAddedTaskId === task.id}
-          />
-        ))}
-      </div>
+      {/* Task List or Centered Empty State (Authority: Figma Tasks empty-state frame 361:492) */}
+      {tasks.length === 0 ? (
+        !isAddFormOpen && !isClosingForm ? (
+          <div className="flowcus-tasks-empty-area" role="region" aria-label="No tasks today">
+            <div className="flowcus-empty-composition">
+              {/* Muted document-like empty-state illustration */}
+              <div className="flowcus-empty-doc-icon" aria-hidden="true">
+                <svg
+                  width="34"
+                  height="42"
+                  viewBox="0 0 34 42"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 2h16l8 8v28a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+                  <polyline points="21 2 21 10 29 10" />
+                  <line x1="9" y1="18" x2="25" y2="18" />
+                  <line x1="9" y1="24" x2="25" y2="24" />
+                  <line x1="9" y1="30" x2="17" y2="30" />
+                </svg>
+              </div>
+
+              {/* Empty-state typography */}
+              <div className="flowcus-empty-copy">
+                <h3 className="flowcus-empty-heading">A fresh start</h3>
+                <p className="flowcus-empty-subtext">Add a task and make today count.</p>
+              </div>
+
+              {/* Primary Add Task white pill button */}
+              <button
+                type="button"
+                className="flowcus-empty-add-btn"
+                onClick={() => {
+                  if (!isAddFormOpen) onToggleAddForm?.();
+                }}
+                aria-label="Add Task"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Add Task</span>
+              </button>
+            </div>
+          </div>
+        ) : null
+      ) : (
+        <div className="flowcus-task-list" role="list" aria-label="Today’s Tasks">
+          {tasks.map(task => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              onToggleComplete={onToggleComplete}
+              onDelete={onDeleteTask}
+              onEdit={onEditTask}
+              onToggleFocus={onToggleFocus}
+              isJustAdded={justAddedTaskId === task.id}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

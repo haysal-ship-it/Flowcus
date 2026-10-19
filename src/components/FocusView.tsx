@@ -13,6 +13,7 @@ interface FocusViewProps {
   onResumeFocus: () => void;
   onResetFocus: () => void;
   onSelectActiveTask: (id: string) => void;
+  focusedMinutesToday?: number;
 }
 
 export const FocusView: React.FC<FocusViewProps> = ({
@@ -23,38 +24,60 @@ export const FocusView: React.FC<FocusViewProps> = ({
   onResumeFocus,
   onResetFocus,
   onSelectActiveTask,
+  focusedMinutesToday = 0,
 }) => {
   const [isMuted, setIsMuted] = useState<boolean>(() => flipAudio.getMuted());
 
-  // Identify the active task from timerState or task flags
-  const activeTask =
-    (timerState.activeTaskId ? tasks.find(t => t.id === timerState.activeTaskId) : null) ||
-    tasks.find(t => t.inProgress) ||
-    tasks.find(t => !t.completed) ||
-    tasks[0];
+  // Incomplete tasks available for focus sessions (Section 2.1)
+  const eligibleTasks = tasks.filter(t => !t.completed);
+  const isFocusEmpty = eligibleTasks.length === 0;
+
+  // Identify active task from eligible incomplete tasks only
+  const activeTask = isFocusEmpty
+    ? null
+    : (timerState.activeTaskId ? eligibleTasks.find(t => t.id === timerState.activeTaskId) : null) ||
+      eligibleTasks.find(t => t.inProgress) ||
+      eligibleTasks[0] ||
+      null;
 
   const handleCycleTask = () => {
-    const uncompletedTasks = tasks.filter(t => !t.completed);
-    if (uncompletedTasks.length === 0) return;
-    const currentIndex = uncompletedTasks.findIndex(t => t.id === activeTask?.id);
-    const nextIndex = (currentIndex + 1) % uncompletedTasks.length;
-    onSelectActiveTask(uncompletedTasks[nextIndex].id);
+    if (eligibleTasks.length <= 1) return;
+    const currentIndex = eligibleTasks.findIndex(t => t.id === activeTask?.id);
+    const nextIndex = (currentIndex + 1) % eligibleTasks.length;
+    onSelectActiveTask(eligibleTasks[nextIndex].id);
   };
 
   const handleToggleSound = () => {
     const nextMuted = flipAudio.toggleMuted();
     setIsMuted(nextMuted);
     if (!nextMuted) {
-      // Play a quick tactile click to confirm sound is active
       flipAudio.playRelease();
     }
   };
 
-  const activeTaskTitle = activeTask ? activeTask.title : 'Update solime design system';
+  // Section 2.3: Session counter display rules:
+  // - No eligible task and no active focus session: hide session counter
+  // - An eligible task exists but user has not started a session: do not prematurely show Session 1 / 5
+  // - Once a session has started (running, paused, completed, or subsequent sessions), show counter
+  const hasActiveOrCompletedSession =
+    timerState.status === 'running' ||
+    timerState.status === 'paused' ||
+    timerState.status === 'completed' ||
+    timerState.currentSession > 1 ||
+    focusedMinutesToday > 0;
+
+  const showSessionCounter = !isFocusEmpty && hasActiveOrCompletedSession;
+
+  // When focus is empty: timer displays exactly 00:00 (Section 2.2)
+  const displaySeconds = isFocusEmpty ? 0 : timerState.remainingSeconds;
+
+  const isResetDisabled =
+    isFocusEmpty ||
+    (timerState.status === 'idle' && timerState.remainingSeconds === timerState.initialDurationSeconds);
 
   return (
     <div className="flowcus-focus-view">
-      {/* 1. Heading Row: "Focus Session" on left, "Session 2 / 5" and sound toggle on far right */}
+      {/* 1. Heading Row: "Focus Session" on left, sound toggle & conditional session counter on right */}
       <div className="flowcus-focus-header-row">
         <h2 className="flowcus-heading-focus">Focus Session</h2>
         <div className="flowcus-focus-header-meta">
@@ -67,42 +90,61 @@ export const FocusView: React.FC<FocusViewProps> = ({
           >
             {isMuted ? <VolumeXIcon size={14} /> : <Volume2Icon size={14} />}
           </button>
-          <span className="flowcus-session-counter tabular-nums">
-            Session {timerState.currentSession} / {timerState.totalSessions}
-          </span>
+          {showSessionCounter && (
+            <span className="flowcus-session-counter tabular-nums">
+              Session {timerState.currentSession} / {timerState.totalSessions}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* 2. Large Centered Split-Flap Flip Clock Timer */}
+      {/* 2. Large Centered Split-Flap Flip Clock Timer (Displays exactly 00:00 in empty state) */}
       <div className="flowcus-timer-region">
         <FlipClock
-          remainingSeconds={timerState.remainingSeconds}
-          animate={timerState.status === 'running' || timerState.status === 'idle'}
+          remainingSeconds={displaySeconds}
+          animate={!isFocusEmpty && (timerState.status === 'running' || timerState.status === 'idle')}
         />
       </div>
 
-      {/* 3. Active task in green beneath the timer: "Active: Update solime design system" */}
-      <button
-        type="button"
-        className="flowcus-focus-active-task-green"
-        title={`Active task: ${activeTaskTitle} (Click to switch)`}
-        onClick={handleCycleTask}
-        style={{
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          cursor: tasks.length > 1 ? 'pointer' : 'default',
-        }}
-      >
-        Active: {activeTaskTitle}
-      </button>
+      {/* 3. Active task beneath timer */}
+      {activeTask ? (
+        <button
+          type="button"
+          className="flowcus-focus-active-task-green"
+          title={`Active task: ${activeTask.title} (Click to switch)`}
+          onClick={handleCycleTask}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: eligibleTasks.length > 1 ? 'pointer' : 'default',
+          }}
+        >
+          Active: {activeTask.title}
+        </button>
+      ) : (
+        <span className="flowcus-focus-active-task-muted" aria-label="No active task">
+          No active task
+        </span>
+      )}
 
       {/* 4. Subtle thin horizontal divider */}
       <div className="flowcus-focus-divider" role="separator" />
 
-      {/* 5. Focus controls: Wide white pill button (~40px) with dark icon/label + 40x40px circular dark reset button */}
+      {/* 5. Focus controls: Start Focus (disabled in empty state) + Repeat/Reset (disabled in empty state) */}
       <div className="flowcus-focus-controls-row">
-        {timerState.status === 'running' ? (
+        {isFocusEmpty ? (
+          <button
+            type="button"
+            className="flowcus-focus-white-pill-btn disabled"
+            disabled
+            aria-disabled="true"
+            title="No incomplete tasks available for focus"
+          >
+            <PlayIcon size={15} />
+            <span>Start focus</span>
+          </button>
+        ) : timerState.status === 'running' ? (
           <button
             type="button"
             className="flowcus-focus-white-pill-btn"
@@ -136,10 +178,12 @@ export const FocusView: React.FC<FocusViewProps> = ({
 
         <button
           type="button"
-          className="flowcus-focus-reset-circle-btn"
-          onClick={onResetFocus}
-          title="Reset session"
-          aria-label="Reset session"
+          className={`flowcus-focus-reset-circle-btn ${isResetDisabled ? 'disabled' : ''}`}
+          onClick={isResetDisabled ? undefined : onResetFocus}
+          disabled={isResetDisabled}
+          aria-disabled={isResetDisabled}
+          title={isResetDisabled ? 'Reset unavailable' : 'Reset session'}
+          aria-label={isResetDisabled ? 'Reset unavailable' : 'Reset session'}
         >
           <RotateCcwIcon size={16} />
         </button>

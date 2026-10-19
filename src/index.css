@@ -114,6 +114,8 @@ select:focus:not(:focus-visible) {
 .flowcus-shell-container {
   width: 418px;
   max-width: 100%;
+  min-height: 520px;
+  position: relative;
   border-radius: 24px;
   background-color: rgba(78, 78, 78, 0.4);
   backdrop-filter: blur(25px);
@@ -126,6 +128,20 @@ select:focus:not(:focus-visible) {
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
   overflow: hidden;
   user-select: none;
+}
+
+.flowcus-widget-content-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: opacity 380ms var(--flowcus-ease);
+  opacity: 1;
+}
+
+.flowcus-widget-content-wrap.splash-active {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ==========================================================================
@@ -1366,4 +1382,244 @@ select:focus:not(:focus-visible) {
     outline: 2px solid var(--color-focus-ring) !important;
     outline-offset: 2px !important;
   }
+
+  .flowcus-splash-screen {
+    transition: opacity 160ms linear !important;
+    transform: none !important;
+  }
+  .flowcus-splash-screen.exiting {
+    transform: none !important;
+  }
+  .flowcus-widget-content-wrap {
+    transition: opacity 160ms linear !important;
+  }
+  .flowcus-empty-composition {
+    animation: none !important;
+  }
+  .flowcus-empty-add-btn {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* ==========================================================================
+   Figma-Inspired Splash Screen (Authority: Figma Splash screen.png)
+   ========================================================================== */
+.flowcus-splash-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  border-radius: 24px;
+  background-color: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: all;
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 380ms cubic-bezier(0.2, 0, 0, 1), transform 380ms cubic-bezier(0.2, 0, 0, 1);
+  will-change: opacity, transform;
+}
+
+.flowcus-splash-screen.exiting {
+  opacity: 0;
+  transform: scale(1.018);
+  pointer-events: none;
+}
+
+/* Radiant Ambient Bottom Glow exactly matching Figma Splash screen.png */
+.flowcus-splash-ambient-glow {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 48%;
+  background: radial-gradient(ellipse 95% 70% at 50% 108%, #E35900 0%, #D05300 24%, rgba(208, 83, 0, 0.45) 50%, rgba(0, 0, 0, 0) 80%);
+  pointer-events: none;
+}
+
+.flowcus-splash-ambient-glow::after {
+  content: '';
+  position: absolute;
+  bottom: -30px;
+  left: 15%;
+  right: 15%;
+  height: 180px;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255, 140, 30, 0.45) 0%, rgba(208, 83, 0, 0.2) 45%, transparent 75%);
+  filter: blur(28px);
+  pointer-events: none;
+}
+
+.flowcus-splash-center {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.flowcus-splash-wordmark {
+  font-family: var(--font-family-geist);
+  font-weight: 700;
+  font-size: 38px;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: #FFFFFF;
+  text-shadow: 0 0 32px rgba(255, 255, 255, 0.25), 0 2px 10px rgba(0, 0, 0, 0.8);
+  user-select: none;
+}
+
+/* ==========================================================================
+   Focus View Empty & Disabled State Styles (Figma node 368:615)
+   ========================================================================== */
+.flowcus-focus-white-pill-btn:disabled,
+.flowcus-focus-white-pill-btn.disabled {
+  background-color: var(--color-raised);
+  color: var(--color-text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+  pointer-events: none;
+  transform: none !important;
+}
+
+.flowcus-focus-white-pill-btn:disabled svg,
+.flowcus-focus-white-pill-btn.disabled svg {
+  color: var(--color-text-secondary);
+}
+
+.flowcus-focus-reset-circle-btn:disabled,
+.flowcus-focus-reset-circle-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  border-color: rgba(255, 255, 255, 0.04);
+  transform: none !important;
+}
+
+.flowcus-focus-active-task-muted {
+  font-family: var(--font-family-geist);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: 2px 0;
+  user-select: none;
+}
+
+/* ==========================================================================
+   Tasks Empty State (Authority: Figma Tasks empty-state frame 361:492)
+   ========================================================================== */
+.flowcus-tasks-empty-area {
+  width: 100%;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 34px 16px 28px 16px;
+  background: transparent;
+  border: none;
+}
+
+.flowcus-empty-composition {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  max-width: 280px;
+  margin: 0 auto;
+  animation: flowcusFadeIn 220ms var(--flowcus-ease);
+}
+
+@keyframes flowcusFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.flowcus-empty-doc-icon {
+  color: #797979;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.flowcus-empty-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.flowcus-empty-heading {
+  font-family: var(--font-family-geist);
+  font-size: 16px;
+  font-weight: 600;
+  color: #FFFFFF;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.flowcus-empty-subtext {
+  font-family: var(--font-family-geist);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.flowcus-empty-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 9px 22px;
+  background-color: #FFFFFF;
+  color: #0E0E0E;
+  font-family: var(--font-family-geist);
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: background-color var(--flowcus-motion-fast) var(--flowcus-ease), transform var(--flowcus-motion-fast) var(--flowcus-ease);
+}
+
+.flowcus-empty-add-btn:hover {
+  background-color: #EAEAEA;
+  transform: translateY(-1px);
+}
+
+.flowcus-empty-add-btn:active {
+  transform: translateY(0);
+}
+
+/* Dev Toolbar Extension */
+.flowcus-state-switcher-sep {
+  color: rgba(255, 255, 255, 0.2);
+  margin: 0 4px;
+  user-select: none;
+}
+
+.flowcus-state-btn.test-btn {
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.flowcus-state-btn.test-btn:hover {
+  color: #FFFFFF;
+  background-color: rgba(208, 83, 0, 0.2);
+  border-color: rgba(208, 83, 0, 0.4);
 }
