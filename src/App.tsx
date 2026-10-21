@@ -7,6 +7,11 @@ import React, { useState } from 'react';
 import { FlowcusWidget, ReferenceState } from './components/FlowcusWidget';
 
 export default function App() {
+  // Gated behind explicit build-time development flag; false by default
+  const showFigmaStatePanel = Boolean(
+    import.meta.env.DEV && import.meta.env.VITE_SHOW_FIGMA_STATE_PANEL === 'true'
+  );
+
   const [activeReferenceState, setActiveReferenceState] = useState<ReferenceState>('tasks-default');
   const [replaySplashTrigger, setReplaySplashTrigger] = useState<number>(0);
   const [sampleTasksTrigger, setSampleTasksTrigger] = useState<number>(0);
@@ -35,86 +40,88 @@ export default function App() {
   };
 
   return (
-    <div className="flowcus-desktop-stage" role="main">
+    <div className={`flowcus-desktop-stage ${showFigmaStatePanel ? 'has-debug-panel' : ''}`} role="main">
       {/* 418px Centered Flowcus Widget */}
       <FlowcusWidget
-        activeReferenceState={activeReferenceState}
-        onChangeReferenceState={setActiveReferenceState}
+        activeReferenceState={showFigmaStatePanel ? activeReferenceState : undefined}
+        onChangeReferenceState={showFigmaStatePanel ? setActiveReferenceState : undefined}
         replaySplashTrigger={replaySplashTrigger}
         sampleTasksTrigger={sampleTasksTrigger}
         resetDayTrigger={resetDayTrigger}
       />
 
-      {/* Discreet Figma Reference State Switcher & Test Controls */}
-      <nav
-        className="flowcus-state-switcher-toolbar"
-        aria-label="Figma Reference States & Test Controls"
-      >
-        <span className="flowcus-state-switcher-label">Figma State:</span>
-        <button
-          type="button"
-          className={`flowcus-state-btn ${activeReferenceState === 'tasks-default' ? 'active' : ''}`}
-          onClick={() => setActiveReferenceState('tasks-default')}
+      {/* Discreet Figma Reference State Switcher & Test Controls: only rendered when explicitly enabled */}
+      {showFigmaStatePanel && (
+        <nav
+          className="flowcus-state-switcher-toolbar"
+          aria-label="Figma Reference States & Test Controls"
         >
-          1. Tasks
-        </button>
-        <button
-          type="button"
-          className={`flowcus-state-btn ${activeReferenceState === 'add-task' ? 'active' : ''}`}
-          onClick={() => setActiveReferenceState('add-task')}
-        >
-          2. Add Task
-        </button>
-        <button
-          type="button"
-          className={`flowcus-state-btn ${activeReferenceState === 'focus-idle' ? 'active' : ''}`}
-          onClick={() => setActiveReferenceState('focus-idle')}
-        >
-          3. Focus Idle
-        </button>
-        <button
-          type="button"
-          className={`flowcus-state-btn ${activeReferenceState === 'focus-running' ? 'active' : ''}`}
-          onClick={() => setActiveReferenceState('focus-running')}
-        >
-          4. Focus Running
-        </button>
+          <span className="flowcus-state-switcher-label">Figma State:</span>
+          <button
+            type="button"
+            className={`flowcus-state-btn ${activeReferenceState === 'tasks-default' ? 'active' : ''}`}
+            onClick={() => setActiveReferenceState('tasks-default')}
+          >
+            1. Tasks
+          </button>
+          <button
+            type="button"
+            className={`flowcus-state-btn ${activeReferenceState === 'add-task' ? 'active' : ''}`}
+            onClick={() => setActiveReferenceState('add-task')}
+          >
+            2. Add Task
+          </button>
+          <button
+            type="button"
+            className={`flowcus-state-btn ${activeReferenceState === 'focus-idle' ? 'active' : ''}`}
+            onClick={() => setActiveReferenceState('focus-idle')}
+          >
+            3. Focus Idle
+          </button>
+          <button
+            type="button"
+            className={`flowcus-state-btn ${activeReferenceState === 'focus-running' ? 'active' : ''}`}
+            onClick={() => setActiveReferenceState('focus-running')}
+          >
+            4. Focus Running
+          </button>
 
-        <span className="flowcus-state-switcher-sep" aria-hidden="true">|</span>
+          <span className="flowcus-state-switcher-sep" aria-hidden="true">|</span>
 
-        <button
-          type="button"
-          className="flowcus-state-btn test-btn"
-          onClick={handleReplaySplash}
-          title="Replay introductory splash screen and widget handoff"
-        >
-          Replay Splash
-        </button>
-        <button
-          type="button"
-          className="flowcus-state-btn test-btn"
-          onClick={handleSimulateMidnight}
-          title="Simulate calendar midnight transition & automatic task reset (Test E)"
-        >
-          Simulate Midnight
-        </button>
-        <button
-          type="button"
-          className="flowcus-state-btn test-btn"
-          onClick={handleSeedSample}
-          title="Seed today's 5 Figma reference tasks"
-        >
-          Seed Sample Tasks
-        </button>
-        <button
-          type="button"
-          className="flowcus-state-btn test-btn"
-          onClick={handleResetDay}
-          title="Clear all tasks for today (Empty State)"
-        >
-          Clear Day
-        </button>
-      </nav>
+          <button
+            type="button"
+            className="flowcus-state-btn test-btn"
+            onClick={handleReplaySplash}
+            title="Replay introductory splash screen and widget handoff"
+          >
+            Replay Splash
+          </button>
+          <button
+            type="button"
+            className="flowcus-state-btn test-btn"
+            onClick={handleSimulateMidnight}
+            title="Simulate calendar midnight transition & automatic task reset (Test E)"
+          >
+            Simulate Midnight
+          </button>
+          <button
+            type="button"
+            className="flowcus-state-btn test-btn"
+            onClick={handleSeedSample}
+            title="Seed today's 5 Figma reference tasks"
+          >
+            Seed Sample Tasks
+          </button>
+          <button
+            type="button"
+            className="flowcus-state-btn test-btn"
+            onClick={handleResetDay}
+            title="Clear all tasks for today (Empty State)"
+          >
+            Clear Day
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

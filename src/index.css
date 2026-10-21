@@ -96,7 +96,7 @@ select:focus:not(:focus-visible) {
   font-feature-settings: "tnum";
 }
 
-/* Page Canvas Host: Desktop Centered Verification */
+/* Page Canvas Host: Desktop Centered Presentation */
 .flowcus-desktop-stage {
   min-height: 100vh;
   display: flex;
@@ -105,6 +105,10 @@ select:focus:not(:focus-visible) {
   justify-content: center;
   padding: 32px 16px;
   background-color: var(--color-app);
+  gap: 0;
+}
+
+.flowcus-desktop-stage.has-debug-panel {
   gap: 20px;
 }
 
