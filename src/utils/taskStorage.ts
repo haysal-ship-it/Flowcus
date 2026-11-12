@@ -1,21 +1,10 @@
-import { TaskItem } from '../types';
+import { TaskItem, TimerStatus, StoredTimerData } from '../types';
+export type { TimerStatus, StoredTimerData };
 
 export const TASKS_STORAGE_KEY = 'flowcus_tasks_v4';
+export const TASK_HISTORY_KEY = 'flowcus_task_history_v4';
 export const FOCUS_MINUTES_KEY = 'flowcus_focus_minutes_v4';
 export const TIMER_STORAGE_KEY = 'flowcus_timer_v4';
-
-export type TimerStatus = 'idle' | 'running' | 'paused' | 'completed';
-
-export interface StoredTimerData {
-  status: TimerStatus;
-  initialDurationSeconds: number;
-  remainingSeconds: number;
-  targetEndTimeMs: number | null;
-  currentSession: number;
-  totalSessions: number;
-  activeTaskId: string | null;
-  lastUpdatedMs: number;
-}
 
 export type AllowedTaskDuration = '15m' | '30m' | '60m';
 export const ALLOWED_DURATIONS: readonly AllowedTaskDuration[] = ['15m', '30m', '60m'] as const;
@@ -92,10 +81,57 @@ export const getDefaultTimer = (): StoredTimerData => ({
 
 export const performDailyReset = (newDayKey: string): void => {
   try {
+    const raw = localStorage.getItem(TASKS_STORAGE_KEY);
+    let existingTasks: TaskItem[] = [];
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) existingTasks = parsed;
+      } catch {}
+    }
+
+    // Preserve unfinished tasks, archive completed tasks
+    const incompleteTasks: TaskItem[] = [];
+    const completedTasks: TaskItem[] = [];
+    for (const t of existingTasks) {
+      if (t.completed) {
+        completedTasks.push(t);
+      } else {
+        incompleteTasks.push({
+          ...t,
+          targetDate: newDayKey,
+        });
+      }
+    }
+
+    // Archive completed tasks
+    if (completedTasks.length > 0) {
+      try {
+        const historyRaw = localStorage.getItem(TASK_HISTORY_KEY);
+        const existingHistory = historyRaw ? JSON.parse(historyRaw) : [];
+        const mergedHistory = Array.isArray(existingHistory)
+          ? [...existingHistory, ...completedTasks]
+          : completedTasks;
+        localStorage.setItem(TASK_HISTORY_KEY, JSON.stringify(mergedHistory));
+      } catch {}
+    }
+
     localStorage.setItem(DAY_KEY_STORAGE, newDayKey);
-    localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify([]));
+    localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(incompleteTasks));
     localStorage.setItem(FOCUS_MINUTES_KEY, '0');
-    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(getDefaultTimer()));
+
+    // Preserve timer if currently running, otherwise reset to idle
+    const currentTimerRaw = localStorage.getItem(TIMER_STORAGE_KEY);
+    if (currentTimerRaw) {
+      try {
+        const parsedTimer = JSON.parse(currentTimerRaw);
+        if (parsedTimer && parsedTimer.status !== 'running') {
+          localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(getDefaultTimer()));
+        }
+      } catch {
+        localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(getDefaultTimer()));
+      }
+    }
   } catch (err) {
     console.error('Failed to perform daily reset', err);
   }
@@ -126,14 +162,12 @@ export const loadTasksFromStorage = (): TaskItem[] => {
   const today = getLocalTodayDateString();
   const storedDay = localStorage.getItem(DAY_KEY_STORAGE);
 
-  // If opening on a new local calendar day or fresh install:
-  // Automatically clear expired tasks from yesterday and initialize clean empty state for today
+  // If opening on a new local calendar day: safe retention rollover
   if (!storedDay || storedDay !== today) {
     performDailyReset(today);
-    return [];
   }
 
-  // Same day: restore today's tasks
+  // Restore today's tasks
   try {
     const raw = localStorage.getItem(TASKS_STORAGE_KEY);
     if (raw) {

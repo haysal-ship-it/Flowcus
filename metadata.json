@@ -1,6 +1,6 @@
 {
-  "name": "Flowcus",
-  "description": "A calm, minimal, pixel-accurate productivity widget inspired by Figma Flowcus reference.",
+  "name": "Uwidgets",
+  "description": "A calm, minimal desktop widget suite featuring Flowcus focus timer, Playz mini-game, and Stickk sketchpad notes.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

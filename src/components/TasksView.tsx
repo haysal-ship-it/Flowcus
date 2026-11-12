@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { TaskItem } from '../types';
 import { TaskRow } from './TaskRow';
 import { AddTaskForm } from './AddTaskForm';
@@ -14,6 +14,8 @@ interface TasksViewProps {
   justAddedTaskId: string | null;
   isAddFormOpen?: boolean;
   onToggleAddForm?: () => void;
+  onCloseAddForm?: () => void;
+  onOpenAddForm?: () => void;
 }
 
 export const TasksView: React.FC<TasksViewProps> = ({
@@ -26,6 +28,8 @@ export const TasksView: React.FC<TasksViewProps> = ({
   justAddedTaskId,
   isAddFormOpen = false,
   onToggleAddForm,
+  onCloseAddForm,
+  onOpenAddForm,
 }) => {
   const formattedDate = getFormattedTodayDate();
 
@@ -35,13 +39,32 @@ export const TasksView: React.FC<TasksViewProps> = ({
   };
 
   const [isClosingForm, setIsClosingForm] = React.useState(false);
+  const closeTimeoutRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleCloseForm = () => {
     if (isClosingForm) return;
     setIsClosingForm(true);
-    setTimeout(() => {
+
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+    }
+
+    closeTimeoutRef.current = window.setTimeout(() => {
+      closeTimeoutRef.current = null;
       setIsClosingForm(false);
-      onToggleAddForm?.();
+      if (onCloseAddForm) {
+        onCloseAddForm();
+      } else {
+        onToggleAddForm?.();
+      }
     }, 170);
   };
 
@@ -49,7 +72,11 @@ export const TasksView: React.FC<TasksViewProps> = ({
     if (isAddFormOpen) {
       handleCloseForm();
     } else {
-      onToggleAddForm?.();
+      if (onOpenAddForm) {
+        onOpenAddForm();
+      } else {
+        onToggleAddForm?.();
+      }
     }
   };
 
@@ -59,10 +86,10 @@ export const TasksView: React.FC<TasksViewProps> = ({
       <div className="flowcus-tasks-header-row">
         <div className="flowcus-tasks-title-group">
           <span className="flowcus-date-label">{formattedDate}</span>
-          <h2 className="flowcus-heading-tasks">Today’s Tasks</h2>
+          <h2 className="flowcus-heading-tasks">Today's Tasks</h2>
         </div>
 
-        {/* 32 × 32px add-button hit area aligned to top right */}
+        {/* 32 x 32px add-button hit area aligned to top right */}
         <button
           type="button"
           className={`flowcus-add-btn-32 ${isAddFormOpen && !isClosingForm ? 'active' : ''}`}
@@ -91,7 +118,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
       {/* Add Task Form with smooth height & opacity transition */}
       <div className={`flowcus-add-form-collapse ${isAddFormOpen && !isClosingForm ? 'open' : ''}`}>
         <div className="flowcus-add-form-inner">
-          {isAddFormOpen && (
+          {(isAddFormOpen || isClosingForm) && (
             <AddTaskForm
               onAdd={handleAddSubmit}
               onCancel={handleCloseForm}
@@ -161,7 +188,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
           </div>
         ) : null
       ) : (
-        <div className="flowcus-task-list" role="list" aria-label="Today’s Tasks">
+        <div className="flowcus-task-list" role="list" aria-label="Today's Tasks">
           {tasks.map(task => (
             <TaskRow
               key={task.id}

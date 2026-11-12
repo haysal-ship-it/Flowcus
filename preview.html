@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uwidgets â€” Dynamic Auto-Sizing & Unified Glass Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Comic+Neue:wght@700&family=Gloria+Hallelujah&family=Pacifico&family=Permanent+Marker&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #080808;
+      --card-glass: rgba(18, 18, 18, 0.92);
+      --card-border: rgba(255, 255, 255, 0.09);
+      --accent-orange: #D05300;
+      --accent-amber: #F18A42;
+      --accent-green: #00C853;
+      --text-main: #FFFFFF;
+      --text-muted: #797979;
+      --text-sub: #A0A0A0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Top Preview Navigation Bar */
+    .preview-header-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(14, 14, 14, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .preview-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .preview-logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, #D05300, #F18A42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .preview-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .preview-tag {
+      font-size: 11px;
+      background: rgba(208, 83, 0, 0.2);
+      color: #F18A42;
+      border: 1px solid rgba(208, 83, 0, 0.35);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-weight: 600;
+    }
+
+    .stage-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    .headline-block {
+      margin-bottom: 24px;
+    }
+    .headline-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+    .headline-desc {
+      font-size: 14px;
+      color: var(--text-sub);
+      max-width: 780px;
+      line-height: 1.5;
+    }
+
+    /* Live Interactive Desktop Stage */
+    .desktop-stage-sim {
+      background: radial-gradient(circle at 75% 20%, #450A0A 0%, #1A0505 50%, #080808 100%);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 40px 32px;
+      min-height: 720px;
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+    }
+
+    .wallpaper-label {
+      position: absolute;
+      left: 32px;
+      bottom: 28px;
+      font-size: 32px;
+      font-weight: 900;
+      color: rgba(255, 255, 255, 0.05);
+      letter-spacing: 0.12em;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Widget Column & Controls */
+    .widget-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* Mode Switcher Pill above each widget to test dynamic auto-sizing */
+    .widget-mode-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(20, 20, 20, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 3px 6px;
+    }
+
+    .mode-tab-btn {
+      padding: 4px 10px;
+      border-radius: 14px;
+      border: none;
+      background: transparent;
+      color: #888;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .mode-tab-btn:hover { color: #fff; }
+    .mode-tab-btn.active {
+      background: #D05300;
+      color: #fff;
+    }
+
+    .size-indicator-badge {
+      font-size: 10.5px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #00C853;
+      background: rgba(0, 200, 83, 0.1);
+      border: 1px solid rgba(0, 200, 83, 0.25);
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    /* =========================================================================
+       THE NEW UNIFIED SINGLE-SURFACE GLASS WIDGET SHELL (ZERO SCROLLBARS)
+       ========================================================================= */
+    .unified-widget-shell {
+      width: 312px;
+      background: var(--card-glass);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      overflow: hidden !important; /* STRICTLY ZERO SCROLLBARS! */
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      /* Smooth Dynamic Auto-Height Animation */
+      transition: height 340ms cubic-bezier(0.2, 0, 0, 1), transform 180ms ease;
+    }
+
+    .unified-widget-shell:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(208, 83, 0, 0.25);
+    }
+
+    /* Top Chrome Integrated into the Single Surface (Matching Screenshot 4) */
+    .integrated-top-chrome {
+      height: 34px;
+      min-height: 34px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      user-select: none;
+    }
+
+    .integrated-title-group {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .integrated-dot {
+      width: 6.5px;
+      height: 6.5px;
+      border-radius: 50%;
+      background: #D05300;
+    }
+
+    .integrated-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #E0E0E0;
+      letter-spacing: -0.01em;
+    }
+
+    .integrated-tag {
+      font-size: 10.5px;
+      color: #666;
+    }
+
+    .integrated-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .integrated-icon-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+      border: none;
+      background: transparent;
+      color: #797979;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .integrated-icon-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+    .integrated-icon-btn.is-pinned { color: #F18A42; }
+    .integrated-icon-btn.close-btn:hover { background: rgba(232, 17, 35, 0.2); color: #FF5252; }
+
+    /* =========================================================================
+       WIDGET 1: FLOWCUS (Dynamic: 370px in Focus vs 490px in Tasks)
+       ========================================================================= */
+    .flowcus-body {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Segmented View Switcher */
+    .flowcus-switcher-pill {
+      display: flex;
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 3px;
+    }
+
+    .switcher-tab {
+      flex: 1;
+      padding: 6px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: #797979;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 120ms ease;
+    }
+    .switcher-tab.active {
+      background: #222222;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* Flip Clock Container */
+    .flip-clock-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 0;
+    }
+
+    .flip-digit-tile {
+      background: #171717;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 8px;
+      width: 48px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+
+    .flip-digit-tile::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 50%;
+      height: 1px;
+      background: rgba(0, 0, 0, 0.6);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .clock-separator {
+      font-size: 26px;
+      font-weight: 800;
+      color: #D05300;
+      margin: 0 2px;
+    }
+
+    /* Flowcus Action Button (ALWAYS 100% VISIBLE) */
+    .flowcus-action-btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      background: #FFFFFF;
+      color: #0E0E0E;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 140ms ease;
+    }
+    .flowcus-action-btn:hover { background: #EAEAEA; transform: translateY(-1px); }
+
+    /* Task List Rows */
+    .task-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: #151515;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      font-size: 12.5px;
+    }
+
+    .task-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .task-check-circle {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+    }
+    .task-check-circle.checked {
+      background: #00C853;
+      border-color: #00C853;
+      position: relative;
+    }
+
+    .add-task-trigger-btn {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      background: transparent;
+      color: #A0A0A0;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 120ms ease;
+    }
+    .add-task-trigger-btn:hover { border-color: #D05300; color: #fff; background: rgba(208, 83, 0, 0.08); }
+
+    /* =========================================================================
+       WIDGET 2: PLAYZ (Dynamic: 470px with separated status & zero clipped buttons)
+       ========================================================================= */
+    .playz-body {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Scoreboard */
+    .playz-score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+    }
+
+    .score-block {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .playz-mode-capsule {
+      display: flex;
+      background: #1C1C1C;
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .mode-btn {
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: #797979;
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .mode-btn.active { background: #D05300; color: #fff; }
+
+    /* Separated Arena Header (BUG FIX: "Your Turn (X)" and "Round 3 of 5" cleanly apart) */
+    .playz-status-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 2px;
+    }
+    .status-badge-left {
+      font-size: 12px;
+      font-weight: 700;
+      color: #00C853;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .round-badge-right {
+      font-size: 11px;
+      color: #797979;
+      font-weight: 600;
+    }
+
+    /* 3x3 Arena Board (Proportionate 190px) */
+    .playz-arena-grid {
+      width: 190px;
+      height: 190px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .arena-cell {
+      background: #171717;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 120ms ease;
+      color: #fff;
+    }
+    .arena-cell:hover { background: #222; border-color: rgba(255, 255, 255, 0.18); }
+    .arena-cell.cell-x { color: #D05300; }
+    .arena-cell.cell-o { color: #00C853; }
+
+    /* Docked Bottom Controls (100% VISIBLE, NEVER CLIPPED) */
+    .playz-docked-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .playz-next-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #FFFFFF;
+      color: #0E0E0E;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .playz-next-btn:hover { background: #EAEAEA; }
+
+    .playz-mini-icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #171717;
+      color: #A0A0A0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .playz-mini-icon-btn:hover { background: #222; color: #fff; }
+
+    /* =========================================================================
+       WIDGET 3: STICKK (Dynamic: 390px in Note vs 480px in Sketchpad)
+       ========================================================================= */
+    .stickk-body {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* Page Navigation Bar */
+    .stickk-top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stickk-pages-capsule {
+      display: inline-flex;
+      align-items: center;
+      background: #151515;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 2px 5px;
+      gap: 3px;
+    }
+
+    .stickk-page-pill {
+      min-width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: #797979;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .stickk-page-pill.active { background: #D05300; color: #fff; box-shadow: 0 2px 6px rgba(208, 83, 0, 0.4); }
+
+    .stickk-add-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      background: transparent;
+      color: #A0A0A0;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .stickk-add-btn:hover { border-color: #D05300; color: #D05300; }
+
+    /* The Sticky Note Paper â€” Zero Form Borders, Pure Handwritten Feel */
+    .stickk-paper-card {
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: 'Caveat', cursive, sans-serif;
+      font-size: 17px;
+      line-height: 1.45;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 120px;
+      flex: 1 1 0%;
+      transition: background 180ms ease;
+    }
+
+    .paper-yellow { background: #FEF08A; color: #1C1917; }
+    .paper-orange { background: #FED7AA; color: #1C1917; }
+    .paper-mint   { background: #A7F3D0; color: #064E3B; }
+    .paper-lavender { background: #E9D5FF; color: #3B0764; }
+    .paper-dark   { background: #1F2023; color: #E5E7EB; border: 1px solid rgba(255,255,255,0.08); }
+
+    .paper-editable-title {
+      font-size: 14px;
+      font-weight: 700;
+      font-family: sans-serif;
+      opacity: 0.7;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .paper-body-text {
+      outline: none;
+      word-break: break-word;
+    }
+
+    /* Crisp 16px Theme Swatches (BUG FIX: No more squashed lines) */
+    .stickk-theme-swatches {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .theme-swatch-circle {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      transition: transform 120ms ease;
+    }
+    .theme-swatch-circle:hover { transform: scale(1.2); }
+    .theme-swatch-circle.active { border: 2px solid #FFFFFF; transform: scale(1.25); }
+
+    /* Docked Stickk Bottom Bar (100% VISIBLE, NEVER CLIPPED) */
+    .stickk-docked-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      flex-shrink: 0;
+      margin-top: auto;
+    }
+
+    .stickk-flip-action-btn {
+      flex: 1;
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #1C1C1C;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .stickk-flip-action-btn:hover { background: #262626; border-color: #D05300; }
+
+    .stickk-icon-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+    }
+
+    .stickk-mini-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #171717;
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .stickk-mini-btn:hover { color: #fff; background: #222; }
+    .stickk-mini-btn.danger:hover { color: #EF4444; border-color: #EF4444; }
+
+    /* Architecture Callout Cards */
+    .arch-card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 32px;
+    }
+
+    .arch-card {
+      background: #121212;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .arch-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .arch-desc {
+      font-size: 13px;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Preview Bar -->
+  <header class="preview-header-bar">
+    <div class="preview-brand">
+      <div class="preview-logo">U</div>
+      <div>
+        <span class="preview-title">Dynamic Auto-Sizing &amp; Unified Glass Architecture</span>
+        <span class="preview-tag">Zero Scrollbars</span>
+      </div>
+    </div>
+    <span style="font-size: 12px; color: #00C853;">â— All Action Controls 100% Pinned &amp; Visible</span>
+  </header>
+
+  <main class="stage-container">
+    <div class="headline-block">
+      <h1 class="headline-title">Dynamic Auto-Sizing Desktop Gadgets</h1>
+      <p class="headline-desc">
+        Click the mode buttons above each widget to preview how the desktop window <strong>dynamically morphs its height</strong> to fit its content with <strong>zero scrollbars</strong> and <strong>zero clipped buttons</strong>. All widgets now share <strong>one unified translucent glass tile</strong> with no split containers.
+      </p>
+    </div>
+
+    <!-- Live Desktop Wallpaper Stage -->
+    <div class="desktop-stage-sim">
+      <div class="wallpaper-label">DESKTOP WALLPAPER</div>
+
+      <!-- =================================================================== -->
+      <!-- 1. FLOWCUS COLUMN (Dynamic Auto-Sizing: 370px to 490px) -->
+      <!-- =================================================================== -->
+      <div class="widget-column">
+        <!-- Mode Switcher to test Dynamic Height -->
+        <div class="widget-mode-bar">
+          <button type="button" class="mode-tab-btn active" onclick="setFlowcusMode('focus')">Focus Mode</button>
+          <button type="button" class="mode-tab-btn" onclick="setFlowcusMode('tasks')">Tasks Mode</button>
+          <span class="size-indicator-badge" id="flowcus-size-badge">340 Ã— 370 px</span>
+        </div>
+
+        <!-- The Flowcus Widget Shell -->
+        <div class="unified-widget-shell" id="flowcus-shell" style="height: 370px;">
+          <!-- Integrated Minimal Top Chrome -->
+          <div class="integrated-top-chrome">
+            <div class="integrated-title-group">
+              <span class="integrated-dot"></span>
+              <span class="integrated-title">Flowcus</span>
+              <span class="integrated-tag">Â· Focus &amp; Tasks</span>
+            </div>
+            <div class="integrated-actions">
+              <button type="button" class="integrated-icon-btn" title="Open Uwidgets Suite">ðŸŽ¨</button>
+              <button type="button" class="integrated-icon-btn is-pinned" title="Always on Top Active">ðŸ“Œ</button>
+              <button type="button" class="integrated-icon-btn close-btn" title="Close Widget">âœ•</button>
+            </div>
+          </div>
+
+          <!-- Flowcus Inner Content -->
+          <div class="flowcus-body">
+            <!-- View Switcher -->
+            <div class="flowcus-switcher-pill">
+              <button type="button" class="switcher-tab" id="btn-tab-tasks" onclick="setFlowcusMode('tasks')">Tasks</button>
+              <button type="button" class="switcher-tab active" id="btn-tab-focus" onclick="setFlowcusMode('focus')">Focus</button>
+            </div>
+
+            <!-- View A: Focus Mode (Compact 370px) -->
+            <div id="flowcus-view-focus">
+              <div style="font-size: 11px; color: #797979; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Focus Session</div>
+              <div class="flip-clock-display">
+                <div class="flip-digit-tile">2</div>
+                <div class="flip-digit-tile">5</div>
+                <span class="clock-separator">:</span>
+                <div class="flip-digit-tile">0</div>
+                <div class="flip-digit-tile">0</div>
+              </div>
+              <div style="font-size: 11.5px; color: #A0A0A0; text-align: center; margin-bottom: 12px;">Active Task: Review Uwidgets release</div>
+              <!-- Primary Action: NEVER CLIPPED -->
+              <button type="button" class="flowcus-action-btn">
+                <span>â–¶ Start Focus Session</span>
+              </button>
+            </div>
+
+            <!-- View B: Tasks Mode (Auto-Expands to 490px) -->
+            <div id="flowcus-view-tasks" style="display: none; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: #797979;">
+                <span>Daily Progress: 1 of 3 completed</span>
+                <span style="color: #00C853;">33%</span>
+              </div>
+              <div style="height: 4px; background: #222; border-radius: 2px; overflow: hidden; margin-bottom: 4px;">
+                <div style="width: 33%; height: 100%; background: #D05300; border-radius: 2px;"></div>
+              </div>
+
+              <!-- Task Items -->
+              <div class="task-item-row">
+                <div class="task-left">
+                  <span class="task-check-circle checked"></span>
+                  <span style="text-decoration: line-through; color: #797979;">Review widget screenshots</span>
+                </div>
+                <span style="font-size: 10px; color: #666;">25m</span>
+              </div>
+
+              <div class="task-item-row">
+                <div class="task-left">
+                  <span class="task-check-circle"></span>
+                  <span>Align button design tokens</span>
+                </div>
+                <span style="font-size: 10px; color: #D05300; font-weight: 700;">In Progress</span>
+              </div>
+
+              <div class="task-item-row">
+                <div class="task-left">
+                  <span class="task-check-circle"></span>
+                  <span>Verify dynamic auto-sizing</span>
+                </div>
+                <span style="font-size: 10px; color: #666;">15m</span>
+              </div>
+
+              <!-- Add Task Button: NEVER CLIPPED -->
+              <button type="button" class="add-task-trigger-btn" style="margin-top: 4px;">
+                <span>+ Add New Task</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- 2. PLAYZ COLUMN (470px with Separated Status & Visible Controls) -->
+      <!-- =================================================================== -->
+      <div class="widget-column">
+        <div class="widget-mode-bar">
+          <span style="font-size: 11px; font-weight: 700; color: #A0A0A0; padding-left: 6px;">Playz Match</span>
+          <span class="size-indicator-badge">340 Ã— 470 px</span>
+        </div>
+
+        <div class="unified-widget-shell" id="playz-shell" style="height: 470px;">
+          <!-- Top Chrome -->
+          <div class="integrated-top-chrome">
+            <div class="integrated-title-group">
+              <span class="integrated-dot" style="background: #00C853;"></span>
+              <span class="integrated-title">Playz</span>
+              <span class="integrated-tag">Â· Tic-Tac-Toe</span>
+            </div>
+            <div class="integrated-actions">
+              <button type="button" class="integrated-icon-btn" title="Open Uwidgets Suite">ðŸŽ¨</button>
+              <button type="button" class="integrated-icon-btn is-pinned" title="Always on Top Active">ðŸ“Œ</button>
+              <button type="button" class="integrated-icon-btn close-btn" title="Close Widget">âœ•</button>
+            </div>
+          </div>
+
+          <!-- Playz Body -->
+          <div class="playz-body">
+            <!-- Scoreboard Row with Burnt Orange Capsule -->
+            <div class="playz-score-row">
+              <div class="score-block">
+                <span>YOU (X): <strong style="color: #D05300;">2</strong></span>
+                <span style="color: #444;">|</span>
+                <span>CPU (O): <strong style="color: #00C853;">1</strong></span>
+              </div>
+              <div class="playz-mode-capsule">
+                <button type="button" class="mode-btn">Easy</button>
+                <button type="button" class="mode-btn active">Hard</button>
+                <button type="button" class="mode-btn">2P</button>
+              </div>
+            </div>
+
+            <!-- BUG FIX: Clean Separation between Status & Round -->
+            <div class="playz-status-header">
+              <div class="status-badge-left">
+                <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#00C853;"></span>
+                <span>Your Turn (X)</span>
+              </div>
+              <span class="round-badge-right">Round 4 of 5</span>
+            </div>
+
+            <!-- Proportionate 190px Board with Thick Calligraphic Win Stroke -->
+            <div class="playz-arena-grid" style="position: relative;">
+              <svg style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;" viewBox="0 0 190 190">
+                <defs>
+                  <filter id="brush-filter-preview" x="-20%" y="-20%" width="140%" height="140%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.035 0.07" numOctaves="4" result="noise" />
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="6.5" xChannelSelector="R" yChannelSelector="G" />
+                  </filter>
+                </defs>
+                <path d="M 12 12 Q 95 91 178 178" stroke="#D05300" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" filter="url(#brush-filter-preview)" />
+              </svg>
+              <div class="arena-cell cell-x">✕</div>
+              <div class="arena-cell cell-o">○</div>
+              <div class="arena-cell"></div>
+              <div class="arena-cell cell-o">○</div>
+              <div class="arena-cell cell-x">✕</div>
+              <div class="arena-cell"></div>
+              <div class="arena-cell"></div>
+              <div class="arena-cell"></div>
+              <div class="arena-cell cell-x">✕</div>
+            </div>
+
+            <!-- Docked Bottom Controls: 100% VISIBLE, ZERO CLIPPING -->
+            <div class="playz-docked-bar">
+              <button type="button" class="playz-next-btn">
+                <span>â–¶ Next Round</span>
+              </button>
+              <button type="button" class="playz-mini-icon-btn" title="Confetti celebration">ðŸŽ‰</button>
+              <button type="button" class="playz-mini-icon-btn" title="Reset match">â†º</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- 3. STICKK COLUMN (Dynamic: 390px in Note vs 480px in Tools) -->
+      <!-- =================================================================== -->
+      <div class="widget-column">
+        <div class="widget-mode-bar">
+          <button type="button" class="mode-tab-btn active" onclick="setStickkMode('note')">Note Mode</button>
+          <button type="button" class="mode-tab-btn" onclick="setStickkMode('tools')">Draw Tools</button>
+          <span class="size-indicator-badge" id="stickk-size-badge">340 Ã— 390 px</span>
+        </div>
+
+        <div class="unified-widget-shell" id="stickk-shell" style="height: 390px;">
+          <!-- Top Chrome -->
+          <div class="integrated-top-chrome">
+            <div class="integrated-title-group">
+              <span class="integrated-dot" style="background: #EAB308;"></span>
+              <span class="integrated-title">Stickk</span>
+              <span class="integrated-tag">Â· Sketchpad</span>
+            </div>
+            <div class="integrated-actions">
+              <button type="button" class="integrated-icon-btn" title="Open Uwidgets Suite">ðŸŽ¨</button>
+              <button type="button" class="integrated-icon-btn is-pinned" title="Always on Top Active">ðŸ“Œ</button>
+              <button type="button" class="integrated-icon-btn close-btn" title="Close Widget">âœ•</button>
+            </div>
+          </div>
+
+          <!-- Stickk Body -->
+          <div class="stickk-body">
+            <!-- Navigation Row -->
+            <div class="stickk-top-nav">
+              <div class="stickk-pages-capsule">
+                <span style="font-size:10px; color:#797979; font-weight:700; margin:0 3px;">Page:</span>
+                <button type="button" class="stickk-page-pill active" onclick="setStickyPage(1)">1</button>
+                <button type="button" class="stickk-page-pill" onclick="setStickyPage(2)">2</button>
+                <button type="button" class="stickk-page-pill" onclick="setStickyPage(3)">3</button>
+                <button type="button" class="stickk-add-btn">+</button>
+              </div>
+
+              <!-- Crisp Theme Circles (No more squashed lines!) -->
+              <div class="stickk-theme-swatches">
+                <div class="theme-swatch-circle active" style="background: #FEF08A;" onclick="setStickyTheme('paper-yellow')"></div>
+                <div class="theme-swatch-circle" style="background: #FED7AA;" onclick="setStickyTheme('paper-orange')"></div>
+                <div class="theme-swatch-circle" style="background: #A7F3D0;" onclick="setStickyTheme('paper-mint')"></div>
+                <div class="theme-swatch-circle" style="background: #E9D5FF;" onclick="setStickyTheme('paper-lavender')"></div>
+                <div class="theme-swatch-circle" style="background: #1F2023;" onclick="setStickyTheme('paper-dark')"></div>
+              </div>
+            </div>
+
+            <!-- Sticky Note Paper (Zero form scrollbars, pure handwritten feel) -->
+            <div class="stickk-paper-card paper-yellow" id="sticky-paper">
+              <div>
+                <div class="paper-editable-title">
+                  <span id="paper-title-text">Weekend Goals</span>
+                  <span>Page 1</span>
+                </div>
+                <div class="paper-body-text" id="paper-content-text">
+                  Clean desktop workspace âœ¨<br>
+                  Verify zero scrollbars ðŸ“œ<br>
+                  Test dynamic auto-sizing ðŸš€
+                </div>
+              </div>
+              <div style="font-size: 11px; font-family: sans-serif; opacity: 0.6; text-align: right;">Updated Just Now</div>
+            </div>
+
+            <!-- Draw Tools Drawer (Smoothly expands widget height when active) -->
+            <div id="stickk-draw-tools" style="display: none; align-items: center; justify-content: space-between; padding: 4px 6px; background: #151515; border-radius: 8px;">
+              <span style="font-size: 11px; color: #888;">Ink:</span>
+              <div style="display: flex; gap: 6px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #000; border: 1.5px solid #fff; cursor: pointer;"></span>
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #D05300; cursor: pointer;"></span>
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #00C853; cursor: pointer;"></span>
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #38BDF8; cursor: pointer;"></span>
+              </div>
+              <span style="font-size: 11px; color: #888; font-family: 'Caveat';">Font: Caveat</span>
+            </div>
+
+            <!-- Docked Bottom Actions: 100% VISIBLE, NEVER CLIPPED -->
+            <div class="stickk-docked-bar">
+              <button type="button" class="stickk-flip-action-btn">
+                <span>Flip Next Page âž”</span>
+              </button>
+              <div class="stickk-icon-actions">
+                <button type="button" class="stickk-mini-btn danger" title="Tear page">ðŸ—‘ï¸</button>
+                <button type="button" class="stickk-mini-btn" title="Clear note">ðŸ§¹</button>
+                <button type="button" class="stickk-mini-btn" title="Export">â¤“</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Architectural Advantages Grid -->
+    <div class="arch-card-grid">
+      <div class="arch-card">
+        <h4 class="arch-title">
+          <span>âš¡</span>
+          <span>Zero Scrollbars</span>
+        </h4>
+        <p class="arch-desc">
+          By eliminating inner scrollbars and letting the Electron window dynamically auto-size to wrap the content, the desktop widget remains completely calm and visually pristine.
+        </p>
+      </div>
+
+      <div class="arch-card">
+        <h4 class="arch-title">
+          <span>ðŸ›¡ï¸</span>
+          <span>Never-Clipped Actions</span>
+        </h4>
+        <p class="arch-desc">
+          All primary actions (Flip Page, Next Round, Play/Pause Focus) are docked to the bottom with guaranteed layout heights so they will never be cut off on any screen.
+        </p>
+      </div>
+
+      <div class="arch-card">
+        <h4 class="arch-title">
+          <span>ðŸ’Ž</span>
+          <span>Unified Glass Surface</span>
+        </h4>
+        <p class="arch-desc">
+          Replaced the disjointed "Top Card + Bottom Card" split with a single, continuous, translucent glass panel matching the aesthetic of your reference widget.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // 1. Flowcus Dynamic Auto-Sizing
+    function setFlowcusMode(mode) {
+      const shell = document.getElementById('flowcus-shell');
+      const badge = document.getElementById('flowcus-size-badge');
+      const focusView = document.getElementById('flowcus-view-focus');
+      const tasksView = document.getElementById('flowcus-view-tasks');
+      const tabTasks = document.getElementById('btn-tab-tasks');
+      const tabFocus = document.getElementById('btn-tab-focus');
+      const modeButtons = document.querySelectorAll('.widget-column:nth-child(2) .mode-tab-btn');
+
+      modeButtons.forEach(btn => btn.classList.remove('active'));
+
+      if (mode === 'focus') {
+        shell.style.height = '370px';
+        badge.innerText = '340 Ã— 370 px';
+        focusView.style.display = 'block';
+        tasksView.style.display = 'none';
+        tabFocus.classList.add('active');
+        tabTasks.classList.remove('active');
+        modeButtons[0].classList.add('active');
+      } else {
+        shell.style.height = '490px';
+        badge.innerText = '340 Ã— 490 px';
+        focusView.style.display = 'none';
+        tasksView.style.display = 'flex';
+        tabTasks.classList.add('active');
+        tabFocus.classList.remove('active');
+        modeButtons[1].classList.add('active');
+      }
+    }
+
+    // 2. Stickk Dynamic Auto-Sizing
+    function setStickkMode(mode) {
+      const shell = document.getElementById('stickk-shell');
+      const badge = document.getElementById('stickk-size-badge');
+      const drawTools = document.getElementById('stickk-draw-tools');
+      const modeButtons = document.querySelectorAll('.widget-column:nth-child(4) .mode-tab-btn');
+
+      modeButtons.forEach(btn => btn.classList.remove('active'));
+
+      if (mode === 'note') {
+        shell.style.height = '390px';
+        badge.innerText = '340 Ã— 390 px';
+        drawTools.style.display = 'none';
+        modeButtons[0].classList.add('active');
+      } else {
+        shell.style.height = '480px';
+        badge.innerText = '340 × 480 px';
+        drawTools.style.display = 'flex';
+        modeButtons[1].classList.add('active');
+      }
+    }
+
+    function setStickyTheme(themeClass) {
+      const paper = document.getElementById('sticky-paper');
+      paper.className = 'stickk-paper-card ' + themeClass;
+
+      document.querySelectorAll('.theme-swatch-circle').forEach(sw => sw.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function setStickyPage(num) {
+      document.querySelectorAll('.stickk-page-pill').forEach((pill, i) => {
+        if (i + 1 === num) pill.classList.add('active');
+        else pill.classList.remove('active');
+      });
+
+      const title = document.getElementById('paper-title-text');
+      const body = document.getElementById('paper-content-text');
+
+      if (num === 1) {
+        title.innerText = 'Weekend Goals';
+        body.innerHTML = 'Clean desktop workspace âœ¨<br>Verify zero scrollbars ðŸ“œ<br>Test dynamic auto-sizing ðŸš€';
+      } else if (num === 2) {
+        title.innerText = 'Ideas & Sketches';
+        body.innerHTML = 'â€¢ Tactile Solari flip click sound<br>â€¢ Minimax best-of-5 arena<br>â€¢ 3D page curl animation';
+      } else {
+        title.innerText = 'Sprint Tasks';
+        body.innerHTML = '1. Build production release<br>2. Test installer package<br>3. Pinned widgets verified';
+      }
+    }
+  </script>
+</body>
+</html>

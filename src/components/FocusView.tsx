@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { TaskItem } from '../types';
 import { PlayIcon, PauseIcon, RotateCcwIcon, Volume2Icon, VolumeXIcon } from './Icons';
 import { StoredTimerData } from '../utils/taskStorage';
@@ -14,6 +14,7 @@ interface FocusViewProps {
   onResetFocus: () => void;
   onSelectActiveTask: (id: string) => void;
   focusedMinutesToday?: number;
+  isPreview?: boolean;
 }
 
 export const FocusView: React.FC<FocusViewProps> = ({
@@ -25,8 +26,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
   onResetFocus,
   onSelectActiveTask,
   focusedMinutesToday = 0,
+  isPreview = false,
 }) => {
-  const [isMuted, setIsMuted] = useState<boolean>(() => flipAudio.getMuted());
+  const [isMuted, setIsMuted] = useState<boolean>(() => isPreview ? true : flipAudio.getMuted());
 
   // Incomplete tasks available for focus sessions (Section 2.1)
   const eligibleTasks = tasks.filter(t => !t.completed);
@@ -48,6 +50,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
   };
 
   const handleToggleSound = () => {
+    if (isPreview) {
+      setIsMuted(m => !m);
+      return;
+    }
     const nextMuted = flipAudio.toggleMuted();
     setIsMuted(nextMuted);
     if (!nextMuted) {

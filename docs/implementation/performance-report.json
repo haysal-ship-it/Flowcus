@@ -1,0 +1,104 @@
+{
+  "timestamp": "2026-11-12T08:39:39.552Z",
+  "environment": {
+    "executable": "C:\\Users\\Sal\\Downloads\\Flowcus-main\\release\\win-unpacked\\Uwidgets.exe",
+    "fileSizeMB": "235.39",
+    "lastModified": "2026-11-12T08:37:06.585Z",
+    "electronVersion": "44.9.3",
+    "nodeVersion": "v24.15.0",
+    "osVersion": "Windows_NT 10.0.22000 (x64)",
+    "cpu": "Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz",
+    "cpuCores": 4,
+    "totalRamMB": 8067
+  },
+  "scenarios": [
+    {
+      "scenario": "1. Manager Only",
+      "launchLatencyMs": 2857,
+      "processCount": 4,
+      "workingSetMB": 328.2,
+      "privateMemoryMB": 169.3,
+      "cpuPercent": 0.1
+    },
+    {
+      "scenario": "2a. Flowcus Individually",
+      "launchLatencyMs": 2203,
+      "processCount": 4,
+      "workingSetMB": 318.6,
+      "privateMemoryMB": 159.1,
+      "cpuPercent": 0.1
+    },
+    {
+      "scenario": "2b. Playz Individually",
+      "launchLatencyMs": 1553,
+      "processCount": 4,
+      "workingSetMB": 299.3,
+      "privateMemoryMB": 125.7,
+      "cpuPercent": 0.2
+    },
+    {
+      "scenario": "2c. Stickk Individually",
+      "launchLatencyMs": 1490,
+      "processCount": 4,
+      "workingSetMB": 340.4,
+      "privateMemoryMB": 171.6,
+      "cpuPercent": 1
+    },
+    {
+      "scenario": "3. All Widgets Concurrently (Manager + 3 Widgets)",
+      "launchLatencyMs": 2935,
+      "processCount": 7,
+      "workingSetMB": 616.8,
+      "privateMemoryMB": 301.1,
+      "cpuPercent": 2
+    },
+    {
+      "scenario": "4a. Idle Focus Timer",
+      "launchLatencyMs": 1417,
+      "processCount": 4,
+      "workingSetMB": 319.7,
+      "privateMemoryMB": 147.6,
+      "cpuPercent": 0.1
+    },
+    {
+      "scenario": "4b. Running Focus Timer (Active Ticking)",
+      "launchLatencyMs": 1616,
+      "processCount": 4,
+      "workingSetMB": 326.6,
+      "privateMemoryMB": 156.9,
+      "cpuPercent": 0.1
+    },
+    {
+      "scenario": "5a. Stickk Note Drawing (Doodles Active)",
+      "launchLatencyMs": 1829,
+      "processCount": 4,
+      "workingSetMB": 344.1,
+      "privateMemoryMB": 177.3,
+      "cpuPercent": 2
+    },
+    {
+      "scenario": "5b. Playz Active Game Effects",
+      "launchLatencyMs": 1159,
+      "processCount": 4,
+      "workingSetMB": 299.5,
+      "privateMemoryMB": 138.8,
+      "cpuPercent": 0.2
+    },
+    {
+      "scenario": "6. Hidden Manager to Tray (Widgets in Background)",
+      "launchLatencyMs": 1529,
+      "processCount": 4,
+      "workingSetMB": 320.1,
+      "privateMemoryMB": 145.6,
+      "cpuPercent": 0.5
+    }
+  ],
+  "leakInvestigation": {
+    "baselineMB": 445.3,
+    "cycle5MB": 368.7,
+    "cycle10MB": 342.3,
+    "postGcMB": 342.3,
+    "netGrowthMB": -103,
+    "isLeakDetected": false
+  }
+}

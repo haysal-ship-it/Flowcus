@@ -6,6 +6,7 @@
 class FlipAudioController {
   private audioCtx: AudioContext | null = null;
   private isMuted: boolean = false;
+  private isGlobalMuted: boolean = false;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -30,6 +31,18 @@ class FlipAudioController {
     return this.isMuted;
   }
 
+  public setGlobalMuted(muted: boolean) {
+    this.isGlobalMuted = muted;
+  }
+
+  public getGlobalMuted(): boolean {
+    return this.isGlobalMuted;
+  }
+
+  public isEffectivelyMuted(): boolean {
+    return this.isGlobalMuted || this.isMuted;
+  }
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
     if (typeof window !== 'undefined') {
@@ -47,7 +60,7 @@ class FlipAudioController {
    * Sound 1: Flap Release (snappy high-frequency mechanical latch release)
    */
   public playRelease() {
-    if (this.isMuted) return;
+    if (this.isEffectivelyMuted()) return;
     try {
       this.initContext();
       if (!this.audioCtx) return;
@@ -88,7 +101,7 @@ class FlipAudioController {
    * Sound 2: Flap Landing (subtle low-end thud when flap drops flat)
    */
   public playLanding() {
-    if (this.isMuted) return;
+    if (this.isEffectivelyMuted()) return;
     try {
       this.initContext();
       if (!this.audioCtx) return;

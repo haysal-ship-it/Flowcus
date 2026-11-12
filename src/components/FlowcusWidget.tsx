@@ -25,6 +25,8 @@ import { ViewSwitcher, FlowcusView } from './ViewSwitcher';
 import { TasksView } from './TasksView';
 import { FocusView } from './FocusView';
 import { SplashScreen } from './SplashScreen';
+import { WidgetChrome } from './common/WidgetChrome';
+import { getPreviewTasks, getPreviewTimer, PREVIEW_FOCUSED_MINUTES } from '../utils/previewFixtures';
 
 export type ReferenceState = 'tasks-default' | 'add-task' | 'focus-idle' | 'focus-running';
 
@@ -34,6 +36,10 @@ export interface FlowcusWidgetProps {
   replaySplashTrigger?: number;
   sampleTasksTrigger?: number;
   resetDayTrigger?: number;
+  isPreview?: boolean;
+  initialTasks?: TaskItem[];
+  initialTimer?: StoredTimerData;
+  initialFocusedMinutes?: number;
 }
 
 export const getActiveTask = (allTasks: TaskItem[], activeTaskId: string | null): TaskItem | null => {
@@ -55,21 +61,34 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
   replaySplashTrigger,
   sampleTasksTrigger,
   resetDayTrigger,
+  isPreview = false,
+  initialTasks,
+  initialTimer,
+  initialFocusedMinutes,
 }) => {
   const [currentView, setCurrentView] = useState<FlowcusView>('tasks');
   const [isAddFormOpen, setIsAddFormOpen] = useState<boolean>(false);
-  const [tasks, setTasks] = useState<TaskItem[]>(() => loadTasksFromStorage());
+  const [tasks, setTasks] = useState<TaskItem[]>(() => {
+    if (isPreview) return initialTasks || getPreviewTasks();
+    return loadTasksFromStorage();
+  });
   const [justAddedTaskId, setJustAddedTaskId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<string>('');
-  const [isSplashDone, setIsSplashDone] = useState<boolean>(false);
+  const [isSplashDone, setIsSplashDone] = useState<boolean>(() => isPreview ? true : false);
+
+  const isElectron = Boolean(
+    typeof window !== 'undefined' && window.electronAPI?.isElectron
+  );
 
   // Initial load of timer and focused minutes with deterministic recovery
   const [timerState, setTimerState] = useState<StoredTimerData>(() => {
+    if (isPreview) return initialTimer || getPreviewTimer();
     const { timer } = loadTimerFromStorage();
     return timer;
   });
 
   const [focusedMinutes, setFocusedMinutes] = useState<number>(() => {
+    if (isPreview) return initialFocusedMinutes ?? PREVIEW_FOCUSED_MINUTES;
     const baseMinutes = getFocusMinutesToday();
     const { completedMinutesToAdd } = loadTimerFromStorage();
     if (completedMinutesToAdd > 0) {
@@ -82,6 +101,33 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
   const todayDateString = getLocalTodayDateString();
 
+  // Authoritative session snapshot sync in Electron desktop mode (Audit 02, 07)
+  useEffect(() => {
+    if (isPreview || !isElectron) return;
+    const api = window.electronAPI;
+    if (!api?.getSessionSnapshot) return;
+
+    api.getSessionSnapshot().then((snapshot) => {
+      if (snapshot) {
+        if (Array.isArray(snapshot.tasks)) setTasks(snapshot.tasks);
+        if (snapshot.session) setTimerState(snapshot.session);
+        if (typeof snapshot.focusedMinutesToday === 'number') setFocusedMinutes(snapshot.focusedMinutesToday);
+      }
+    }).catch(() => {});
+
+    const unsub = api.onSessionSnapshot((snapshot) => {
+      if (snapshot) {
+        if (Array.isArray(snapshot.tasks)) setTasks(snapshot.tasks);
+        if (snapshot.session) setTimerState(snapshot.session);
+        if (typeof snapshot.focusedMinutesToday === 'number') setFocusedMinutes(snapshot.focusedMinutesToday);
+      }
+    });
+
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, [isPreview, isElectron]);
+
   // Replay splash trigger
   useEffect(() => {
     if (replaySplashTrigger && replaySplashTrigger > 0) {
@@ -91,28 +137,37 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
   // Seed sample tasks trigger
   useEffect(() => {
+    if (isPreview) return;
     if (sampleTasksTrigger && sampleTasksTrigger > 0) {
-      const seeded = seedReferenceTasks();
-      setTasks(seeded);
-      setFocusedMinutes(60);
+      if (isElectron) {
+        window.electronAPI?.seedSampleTasks?.();
+      } else {
+        const seeded = seedReferenceTasks();
+        setTasks(seeded);
+        setFocusedMinutes(60);
+      }
       setAnnouncement('Sample reference tasks loaded for today.');
     }
-  }, [sampleTasksTrigger]);
+  }, [sampleTasksTrigger, isPreview, isElectron]);
 
   // Daily reset trigger
   useEffect(() => {
     if (resetDayTrigger && resetDayTrigger > 0) {
-      performDailyReset(getLocalTodayDateString());
-      setTasks([]);
-      setFocusedMinutes(0);
-      setTimerState(getDefaultTimer());
+      if (isPreview) return;
+      if (!isElectron) {
+        performDailyReset(getLocalTodayDateString());
+        setTasks([]);
+        setFocusedMinutes(0);
+        setTimerState(getDefaultTimer());
+      }
       setIsAddFormOpen(false);
-      setAnnouncement('Daily reset executed: task list and progress cleared.');
+      setAnnouncement('Daily reset executed: task list and progress updated.');
     }
-  }, [resetDayTrigger]);
+  }, [resetDayTrigger, isPreview, isElectron]);
 
-  // Daily lifecycle monitor: scheduled midnight timeout + wake-up / focus recheck + storage sync
+  // Daily lifecycle monitor: scheduled midnight timeout + wake-up / focus recheck + storage sync (browser fallback)
   useEffect(() => {
+    if (isPreview || isElectron) return;
     let timeoutId: number | null = null;
 
     const scheduleMidnightCheck = () => {
@@ -126,11 +181,11 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
     const handleDateValidation = () => {
       checkAndPerformDailyReset((newDayKey) => {
-        setTasks([]);
+        setTasks(loadTasksFromStorage());
         setFocusedMinutes(0);
         setTimerState(getDefaultTimer());
         setIsAddFormOpen(false);
-        setAnnouncement(`New day started (${newDayKey}). Tasks and daily progress have been reset.`);
+        setAnnouncement(`New day started (${newDayKey}). Tasks and daily progress updated.`);
       });
     };
 
@@ -168,17 +223,19 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
       window.removeEventListener('focus', onWindowFocus);
       window.removeEventListener('storage', onStorageChange);
     };
-  }, []);
+  }, [isPreview, isElectron]);
 
-  // Save tasks to local storage
+  // Save tasks to local storage (only in browser standalone dev mode)
   useEffect(() => {
+    if (isPreview || isElectron) return;
     saveTasksToStorage(tasks);
-  }, [tasks]);
+  }, [tasks, isPreview, isElectron]);
 
-  // Save timer to local storage on changes
+  // Save timer to local storage on changes (only in browser standalone dev mode)
   useEffect(() => {
+    if (isPreview || isElectron) return;
     saveTimerToStorage(timerState);
-  }, [timerState]);
+  }, [timerState, isPreview, isElectron]);
 
   // Sync toolbar reference state if activated
   useEffect(() => {
@@ -264,11 +321,17 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
       const diffMs = timerState.targetEndTimeMs! - now;
 
       if (diffMs <= 0) {
+        if (isElectron && !isPreview) {
+          // Audit 02: In Electron desktop mode, the main process is the sole authority
+          // for awarding focus credit and completing tasks. Avoid renderer double credit.
+          return;
+        }
+
         // Session successfully completed!
         const sessionMins = Math.round(timerState.initialDurationSeconds / 60) || 1;
         setFocusedMinutes(prevMins => {
           const nextMins = prevMins + sessionMins;
-          saveFocusMinutesToday(nextMins);
+          if (!isPreview) saveFocusMinutesToday(nextMins);
           return nextMins;
         });
 
@@ -289,7 +352,7 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
           });
           const nextIncomplete = updated.find(t => !t.completed);
           nextCandidateId = nextIncomplete ? nextIncomplete.id : null;
-          saveTasksToStorage(updated);
+          if (!isPreview) saveTasksToStorage(updated);
           return updated;
         });
 
@@ -309,7 +372,7 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
         };
 
         setTimerState(nextTimer);
-        saveTimerToStorage(nextTimer);
+        if (!isPreview) saveTimerToStorage(nextTimer);
         setAnnouncement('Focus session completed! Task marked completed and daily progress updated.');
       } else {
         const remainingSecs = Math.max(0, Math.ceil(diffMs / 1000));
@@ -334,6 +397,10 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
   // Task actions
   const handleToggleComplete = (id: string) => {
+    if (isElectron && !isPreview) {
+      window.electronAPI?.toggleTask?.(id);
+      return;
+    }
     setTasks(prev => {
       let clearedActive = false;
       const updated = prev.map(task => {
@@ -386,6 +453,11 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
   const handleAddTask = (title: string, duration?: string) => {
     const validDuration = normalizeTaskDuration(duration || '30m');
+    if (isElectron && !isPreview) {
+      window.electronAPI?.addTask?.(title, validDuration);
+      setAnnouncement(`Task "${title}" added to list.`);
+      return;
+    }
     const wasEmpty = tasks.filter(t => !t.completed).length === 0;
 
     const newTask: TaskItem = {
@@ -415,7 +487,7 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
     });
 
     setJustAddedTaskId(newTask.id);
-    setIsAddFormOpen(false);
+    // Form closing transition is owned by TasksView via onCloseAddForm
     setAnnouncement(`Task "${title}" added to list.`);
 
     setTimeout(() => {
@@ -425,6 +497,13 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
   const handleDeleteTask = (id: string) => {
     const target = tasks.find(t => t.id === id);
+    if (isElectron && !isPreview) {
+      window.electronAPI?.deleteTask?.(id);
+      if (target) {
+        setAnnouncement(`Task "${target.title}" deleted.`);
+      }
+      return;
+    }
     setTasks(prev => {
       const updated = prev.filter(t => t.id !== id);
       const remainingIncompletes = updated.filter(t => !t.completed);
@@ -459,6 +538,13 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
 
   const handleEditTask = (id: string, newTitle: string, newDuration?: string) => {
     const validDuration = newDuration ? normalizeTaskDuration(newDuration) : undefined;
+    if (isElectron && !isPreview) {
+      if (validDuration) {
+        window.electronAPI?.editTask?.(id, newTitle, validDuration);
+      }
+      setAnnouncement(`Task "${newTitle}" updated.`);
+      return;
+    }
     setTasks(prev =>
       prev.map(t =>
         t.id === id
@@ -486,6 +572,17 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
   const handleToggleFocus = (id: string) => {
     const isDeselecting = timerState.activeTaskId === id;
     const nextActiveId = isDeselecting ? null : id;
+
+    if (isElectron && !isPreview) {
+      if (timerState.status === 'running' || timerState.status === 'paused') {
+        setAnnouncement('Cannot switch active task while focus session is running or paused. Please reset session first.');
+        return;
+      }
+      if (nextActiveId) {
+        window.electronAPI?.selectActiveTask?.(nextActiveId);
+      }
+      return;
+    }
 
     setTasks(prev =>
       prev.map(task => ({
@@ -528,6 +625,14 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
     const eligible = tasks.filter(t => !t.completed);
     if (eligible.length === 0) return; // Guard: Cannot start focus in empty state
 
+    if (isElectron && !isPreview) {
+      const active = getActiveTask(tasks, timerState.activeTaskId);
+      if (!active) return;
+      window.electronAPI?.startFocusSession?.(active.id);
+      setAnnouncement('Focus session started.');
+      return;
+    }
+
     const now = Date.now();
     const active = getActiveTask(tasks, timerState.activeTaskId);
     if (!active) return;
@@ -549,11 +654,17 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
       lastUpdatedMs: now,
     };
     setTimerState(nextTimer);
-    saveTimerToStorage(nextTimer);
+    if (!isPreview) saveTimerToStorage(nextTimer);
     setAnnouncement('Focus session started.');
   };
 
   const handlePauseFocus = () => {
+    if (isElectron && !isPreview) {
+      window.electronAPI?.pauseFocusSession?.();
+      setAnnouncement('Focus session paused.');
+      return;
+    }
+
     const now = Date.now();
     const remaining = timerState.targetEndTimeMs
       ? Math.max(0, Math.ceil((timerState.targetEndTimeMs - now) / 1000))
@@ -567,13 +678,19 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
       lastUpdatedMs: now,
     };
     setTimerState(nextTimer);
-    saveTimerToStorage(nextTimer);
+    if (!isPreview) saveTimerToStorage(nextTimer);
     setAnnouncement('Focus session paused.');
   };
 
   const handleResumeFocus = () => {
     const eligible = tasks.filter(t => !t.completed);
     if (eligible.length === 0) return; // Guard: Cannot resume in empty state
+
+    if (isElectron && !isPreview) {
+      window.electronAPI?.resumeFocusSession?.();
+      setAnnouncement('Focus session resumed.');
+      return;
+    }
 
     const now = Date.now();
     const duration = timerState.remainingSeconds > 0 ? timerState.remainingSeconds : timerState.initialDurationSeconds;
@@ -585,13 +702,19 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
       lastUpdatedMs: now,
     };
     setTimerState(nextTimer);
-    saveTimerToStorage(nextTimer);
+    if (!isPreview) saveTimerToStorage(nextTimer);
     setAnnouncement('Focus session resumed.');
   };
 
   const handleResetFocus = () => {
     const eligible = tasks.filter(t => !t.completed);
     if (eligible.length === 0) return; // Guard: Cannot reset in empty state
+
+    if (isElectron && !isPreview) {
+      window.electronAPI?.resetFocusSession?.();
+      setAnnouncement('Focus session reset to task duration.');
+      return;
+    }
 
     const now = Date.now();
     const active = getActiveTask(tasks, timerState.activeTaskId);
@@ -607,7 +730,7 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
       lastUpdatedMs: now,
     };
     setTimerState(nextTimer);
-    saveTimerToStorage(nextTimer);
+    if (!isPreview) saveTimerToStorage(nextTimer);
     setAnnouncement('Focus session reset to task duration.');
   };
 
@@ -618,6 +741,16 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
     } else {
       onChangeReferenceState?.(timerState.status === 'running' ? 'focus-running' : 'focus-idle');
     }
+  };
+
+  const handleOpenAddForm = () => {
+    setIsAddFormOpen(true);
+    onChangeReferenceState?.('add-task');
+  };
+
+  const handleCloseAddForm = () => {
+    setIsAddFormOpen(false);
+    onChangeReferenceState?.('tasks-default');
   };
 
   const handleToggleAddForm = () => {
@@ -646,6 +779,7 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
         </div>
 
         {/* Surface 1: Daily Progress Panel (~410 x 144px, 22px radius, shared between tabs) */}
+        <WidgetChrome title="Flowcus" tag="Focus & Tasks" widgetId="flowcus" isPreview={isPreview} />
         <DailyProgress
           completedTasks={completedTodayTasks}
           totalTasks={totalTodayTasks}
@@ -673,6 +807,8 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
                   justAddedTaskId={justAddedTaskId}
                   isAddFormOpen={isAddFormOpen}
                   onToggleAddForm={handleToggleAddForm}
+                  onCloseAddForm={handleCloseAddForm}
+                  onOpenAddForm={handleOpenAddForm}
                 />
               ) : (
                 <FocusView
@@ -684,6 +820,7 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
                   onResetFocus={handleResetFocus}
                   onSelectActiveTask={handleToggleFocus}
                   focusedMinutesToday={focusedMinutes}
+                  isPreview={isPreview}
                 />
               )}
             </div>
@@ -693,3 +830,4 @@ export const FlowcusWidget: React.FC<FlowcusWidgetProps> = ({
     </div>
   );
 };
+

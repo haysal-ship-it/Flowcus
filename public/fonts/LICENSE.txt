@@ -1,0 +1,27 @@
+Bundled Handwriting Fonts Licenses & Notices
+=============================================
+
+1. Caveat
+   Author: Pablo Impallari
+   License: SIL Open Font License, Version 1.1 (http://scripts.sil.org/OFL)
+   Copyright 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat)
+
+2. Comic Neue
+   Author: Craig Hang
+   License: SIL Open Font License, Version 1.1 (http://scripts.sil.org/OFL)
+   Copyright 2014 Craig Hang
+
+3. Gloria Hallelujah
+   Author: Kimberly Geswein
+   License: SIL Open Font License, Version 1.1 (http://scripts.sil.org/OFL)
+   Copyright 2011 Kimberly Geswein
+
+4. Pacifico
+   Author: Vernon Adams
+   License: SIL Open Font License, Version 1.1 (http://scripts.sil.org/OFL)
+   Copyright 2011 The Pacifico Project Authors (https://github.com/googlefonts/pacifico)
+
+5. Permanent Marker
+   Author: Font Diner, Inc.
+   License: Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
+   Copyright 2010 Font Diner, Inc.

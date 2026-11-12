@@ -1,9 +1,9 @@
 {
-  "name": "flowcus",
-  "productName": "Flowcus",
+  "name": "uwidgets",
+  "productName": "Uwidgets",
   "version": "1.0.0",
-  "description": "A calm, minimal productivity widget.",
-  "author": "Flowcus",
+  "description": "Calm desktop productivity widget suite — Flowcus, Playz, and Stickk.",
+  "author": "Uwidgets",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
@@ -11,10 +11,13 @@
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist release",
-    "lint": "tsc --noEmit",
-    "electron:dev": "concurrently \"vite --port=3000 --host=127.0.0.1\" \"wait-on tcp:3000 && electron . --dev\"",
-    "dist:win": "npm run build && electron-builder --win --x64"
+    "clean": "node -e \"['dist','release'].forEach(d => { try { require('fs').rmSync(d, { recursive: true, force: true }); } catch {} })\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "node scripts/lint.cjs",
+    "test": "tsx --test tests/**/*.test.ts",
+    "package:win": "npm run build && electron-builder --win --x64 --dir",
+    "dist:win": "npm run build && electron-builder --win --x64",
+    "electron:dev": "concurrently \"vite --port=3000 --host=127.0.0.1\" \"wait-on tcp:3000 && electron . --dev\""
   },
   "dependencies": {
     "@fontsource/geist-mono": "^5.3.0",
@@ -46,12 +49,11 @@
     "wait-on": "^9.5.1"
   },
   "build": {
-    "appId": "com.flowcus.desktop",
-    "productName": "Flowcus",
-    "copyright": "Copyright © 2026 Flowcus",
+    "appId": "com.uwidgets.desktop",
+    "productName": "Uwidgets",
+    "copyright": "Copyright © 2026 Uwidgets",
     "directories": {
-      "output": "release",
-      "buildResources": "build"
+      "output": "release"
     },
     "files": [
       "dist/**/*",
@@ -65,8 +67,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "build/icon.ico",
-      "artifactName": "Flowcus-Setup.${ext}",
+      "artifactName": "Uwidgets-Setup.${ext}",
       "signExecutable": false,
       "forceCodeSigning": false
     },
@@ -75,11 +76,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "Flowcus",
+      "shortcutName": "Uwidgets",
       "perMachine": false,
-      "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico",
-      "installerHeaderIcon": "build/icon.ico",
       "deleteAppDataOnUninstall": false
     }
   }

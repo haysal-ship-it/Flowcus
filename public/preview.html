@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uwidgets — Design Refinement Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Comic+Neue:wght@700&family=Gloria+Hallelujah&family=Pacifico&family=Permanent+Marker&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0B0B0B;
+      --card-bg: #121212;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-orange: #D05300;
+      --accent-amber: #F18A42;
+      --accent-green: #00C853;
+      --text-main: #FFFFFF;
+      --text-muted: #797979;
+      --text-sub: #A0A0A0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Top Preview Navigation Bar */
+    .preview-header-bar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(14, 14, 14, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .preview-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .preview-logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, #D05300, #F18A42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .preview-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .preview-tag {
+      font-size: 11px;
+      background: rgba(208, 83, 0, 0.2);
+      color: #F18A42;
+      border: 1px solid rgba(208, 83, 0, 0.35);
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-weight: 600;
+    }
+
+    .preview-tab-controls {
+      display: flex;
+      background: #1C1C1C;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 3px;
+      gap: 4px;
+    }
+
+    .preview-tab-btn {
+      padding: 7px 16px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: #888;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 140ms ease;
+    }
+
+    .preview-tab-btn:hover { color: #fff; }
+    .preview-tab-btn.active {
+      background: #D05300;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(208, 83, 0, 0.4);
+    }
+
+    /* Section Containers */
+    .section-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 36px 24px;
+      display: none;
+    }
+    .section-wrap.active { display: block; }
+
+    .section-header {
+      margin-bottom: 24px;
+    }
+    .section-heading {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+    .section-desc {
+      font-size: 14px;
+      color: var(--text-sub);
+      max-width: 720px;
+      line-height: 1.5;
+    }
+
+    /* ==========================================================================
+       TAB 1: REFINED MODAL WITH SUBTLE INSET SCROLLBAR (Screenshot 2 Alignment)
+       ========================================================================== */
+    .modal-sim-stage {
+      background: #000;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      min-height: 640px;
+    }
+
+    .modal-backdrop-blur {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 30%, rgba(208, 83, 0, 0.12) 0%, rgba(0, 0, 0, 0.85) 70%);
+      pointer-events: none;
+    }
+
+    /* The New Modal Shell — Strictly overflow: hidden with fixed header & footer */
+    .refined-modal {
+      width: 900px;
+      max-width: 100%;
+      height: 580px;
+      background: #121212;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden; /* No scrollbar on the outer frame! */
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Top Modal Header (Fixed, Does NOT Scroll) */
+    .modal-top-header {
+      padding: 18px 24px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #141414;
+    }
+
+    .modal-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .modal-category-chip {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 5px;
+      background: rgba(0, 200, 83, 0.15);
+      color: #00C853;
+      border: 1px solid rgba(0, 200, 83, 0.3);
+    }
+
+    .modal-header-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+
+    .modal-header-sub {
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .modal-close-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #1F1F1F;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .modal-close-icon:hover { background: #2A2A2A; color: #fff; }
+
+    /* Modal Columns Body */
+    .modal-columns-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Left Column: Live Scaled Sandbox Preview */
+    .modal-sandbox-col {
+      background: #090909;
+      border-right: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+    }
+
+    .sandbox-badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      font-size: 10px;
+      font-weight: 700;
+      color: #00C853;
+      background: rgba(0, 200, 83, 0.1);
+      border: 1px solid rgba(0, 200, 83, 0.25);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    /* Right Column: Inner Scroll Area with Screenshot 2 Subtle Inset Scrollbar */
+    .modal-details-col {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: #121212;
+    }
+
+    /* The Scrollable Body (Only this scrolls!) */
+    .modal-info-scroll-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-right: 4px; /* Inset from edge */
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    }
+
+    /* Suble, ultra-thin 3.5px scrollbar matching Screenshot 2 */
+    .modal-info-scroll-body::-webkit-scrollbar {
+      width: 3.5px;
+    }
+    .modal-info-scroll-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .modal-info-scroll-body::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.22);
+      border-radius: 4px;
+    }
+    .modal-info-scroll-body::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.45);
+    }
+
+    /* Fixed Bottom Action Bar (Screenshot 2 Alignment) */
+    .modal-action-footer {
+      padding: 14px 28px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: #141414;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .footer-stats {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .footer-stats strong { color: #fff; }
+
+    .footer-buttons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pin-primary-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #D05300 0%, #E65C00 100%);
+      color: #fff;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(208, 83, 0, 0.35);
+      transition: all 140ms ease;
+    }
+    .pin-primary-btn:hover {
+      background: linear-gradient(135deg, #E06000 0%, #F56B0A 100%);
+      transform: translateY(-1px);
+    }
+
+    .secondary-icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #1C1C1C;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .secondary-icon-btn:hover { background: #262626; border-color: #D05300; }
+
+    /* ==========================================================================
+       TAB 2: PINNED DESKTOP WIDGETS PROPORTIONS (Screenshot 4 Alignment)
+       ========================================================================== */
+    .desktop-wallpaper-sim {
+      background: radial-gradient(circle at 75% 20%, #450A0A 0%, #1A0505 50%, #080808 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      min-height: 640px;
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      gap: 24px;
+      overflow: hidden;
+    }
+
+    .wallpaper-watermark {
+      position: absolute;
+      left: 40px;
+      bottom: 40px;
+      font-size: 42px;
+      font-weight: 900;
+      color: rgba(255, 255, 255, 0.05);
+      letter-spacing: 0.1em;
+      user-select: none;
+    }
+
+    /* Pinned Gadget Container (340px width — Compact & Balanced like Screenshot 4) */
+    .pinned-gadget-shell {
+      width: 340px;
+      background: rgba(18, 18, 18, 0.88);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.06);
+      overflow: hidden; /* Strict overflow prevention */
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Minimal Top Chrome (Matching Screenshot 4) */
+    .gadget-chrome-minimal {
+      height: 32px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.02);
+      user-select: none;
+    }
+
+    .gadget-title-left {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #A0A0A0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .gadget-title-left .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #D05300;
+    }
+
+    .gadget-actions-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .gadget-action-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: #797979;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .gadget-action-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+
+    /* ==========================================================================
+       BUTTON DESIGN SYSTEM IMPROVEMENTS: STICKK & PLAYZ
+       ========================================================================== */
+    .btn-showcase-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-top: 16px;
+    }
+
+    .showcase-card {
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .showcase-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .showcase-tag {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(208, 83, 0, 0.15);
+      color: #F18A42;
+      border: 1px solid rgba(208, 83, 0, 0.3);
+    }
+
+    /* 1. Stickk Page Selector Capsule */
+    .stickk-pages-capsule {
+      display: inline-flex;
+      align-items: center;
+      background: #1C1C1C;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 3px 6px;
+      gap: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .stickk-page-label {
+      font-size: 11px;
+      color: #797979;
+      font-weight: 600;
+      margin-right: 2px;
+      margin-left: 4px;
+    }
+
+    .stickk-page-pill {
+      min-width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: #797979;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 120ms ease;
+    }
+    .stickk-page-pill:hover { color: #fff; background: #262626; }
+    .stickk-page-pill.active {
+      background: #D05300;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(208, 83, 0, 0.45);
+    }
+
+    .stickk-page-add-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      background: transparent;
+      color: #A0A0A0;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 120ms ease;
+    }
+    .stickk-page-add-btn:hover {
+      border-color: #D05300;
+      color: #D05300;
+      background: rgba(208, 83, 0, 0.1);
+    }
+
+    /* 2. Playz Game Mode Segmented Capsule */
+    .playz-mode-segmented {
+      display: inline-flex;
+      background: #161616;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .playz-mode-pill {
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: #797979;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .playz-mode-pill:hover { color: #fff; }
+    .playz-mode-pill.active {
+      background: #D05300;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(208, 83, 0, 0.35);
+    }
+
+    /* Sticky Note Miniature */
+    .sticky-mini-note {
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'Caveat', cursive, sans-serif;
+      font-size: 16px;
+      line-height: 1.4;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .sticky-theme-yellow { background: #FEF08A; color: #1C1917; }
+    .sticky-theme-orange { background: #FED7AA; color: #1C1917; }
+    .sticky-theme-mint { background: #A7F3D0; color: #064E3B; }
+    .sticky-theme-lavender { background: #E9D5FF; color: #3B0764; }
+    .sticky-theme-dark { background: #1F2023; color: #E5E7EB; border: 1px solid rgba(255,255,255,0.08); }
+
+    /* Sticky Bottom Toolbar — Anchored with Zero Clipping */
+    .sticky-docked-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: #141414;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sticky-flip-btn {
+      flex: 1;
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #202020;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 120ms ease;
+    }
+    .sticky-flip-btn:hover { background: #2A2A2A; border-color: #D05300; }
+
+    .sticky-icon-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 8px;
+    }
+
+    .sticky-mini-icon-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #1C1C1C;
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .sticky-mini-icon-btn:hover { color: #fff; background: #262626; }
+    .sticky-mini-icon-btn.btn-danger:hover { color: #EF4444; border-color: #EF4444; }
+
+    /* Playz 3x3 Arena — Scaled & Docked Bottom */
+    .playz-mini-arena {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .playz-mini-board {
+      width: 200px;
+      height: 200px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      position: relative;
+    }
+
+    .playz-mini-cell {
+      background: #161616;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+    .playz-mini-cell:hover { background: #202020; border-color: rgba(255, 255, 255, 0.16); }
+    .playz-mini-cell.mark-x { color: #D05300; }
+    .playz-mini-cell.mark-o { color: #00C853; }
+
+    /* Playz Docked Controls — Anchored & Never Clipped */
+    .playz-docked-footer {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #141414;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .playz-round-btn {
+      flex: 1;
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: none;
+      background: #FFFFFF;
+      color: #0E0E0E;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .playz-round-btn:hover { background: #ECECEC; }
+
+    /* Comparison Callout Cards */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .comp-card {
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .comp-card.bad { border-color: rgba(239, 68, 68, 0.3); }
+    .comp-card.good { border-color: rgba(0, 200, 83, 0.3); }
+
+    .comp-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .bad .comp-badge { background: rgba(239, 68, 68, 0.15); color: #EF4444; }
+    .good .comp-badge { background: rgba(0, 200, 83, 0.15); color: #00C853; }
+
+    .comp-title { font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
+    .comp-desc { font-size: 12px; color: var(--text-sub); line-height: 1.4; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Preview Bar -->
+  <header class="preview-header-bar">
+    <div class="preview-brand">
+      <div class="preview-logo">U</div>
+      <div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="preview-title">Uwidgets Refinements</span>
+          <span class="preview-tag">Preview Mode</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Switcher -->
+    <div class="preview-tab-controls">
+      <button type="button" class="preview-tab-btn active" onclick="switchTab('modal')">1. Refined Modal (Screenshot 2)</button>
+      <button type="button" class="preview-tab-btn" onclick="switchTab('gadgets')">2. Pinned Gadgets (Screenshot 4)</button>
+      <button type="button" class="preview-tab-btn" onclick="switchTab('buttons')">3. Button System Alignment</button>
+      <button type="button" class="preview-tab-btn" onclick="switchTab('titlebar')">4. Titlebar Single Tray</button>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: REFINED MODAL (Screenshot 2 Alignment) -->
+  <!-- ========================================================================= -->
+  <section id="tab-modal" class="section-wrap active">
+    <div class="section-header">
+      <h2 class="section-heading">1. Refined Modal with Inset 3.5px Scrollbar</h2>
+      <p class="section-desc">
+        Matches <strong>Screenshot 2</strong> from Widget Pro: The outer white browser scrollbar is completely removed. The modal header stays fixed at the top, the right column scrolls internally with an inset, subtle 3.5px translucent scrollbar, and the <em>"Pin to Desktop"</em> action bar stays pinned at the bottom.
+      </p>
+    </div>
+
+    <div class="modal-sim-stage">
+      <div class="modal-backdrop-blur"></div>
+
+      <!-- Refined Modal Frame -->
+      <div class="refined-modal">
+        <!-- 1. Fixed Modal Header (Does NOT scroll) -->
+        <div class="modal-top-header">
+          <div class="modal-header-left">
+            <span class="modal-category-chip" id="modal-category">Utility</span>
+            <div>
+              <h3 class="modal-header-title" id="modal-title">Stickk</h3>
+              <p class="modal-header-sub" id="modal-tagline">Tactile sticky note sketchpad with tearable pages</p>
+            </div>
+          </div>
+          <div class="modal-close-icon" title="Close modal">✕</div>
+        </div>
+
+        <!-- 2. Modal Columns Body -->
+        <div class="modal-columns-body">
+          <!-- Left Column: Live Scaled Sandbox Preview -->
+          <div class="modal-sandbox-col">
+            <span class="sandbox-badge">Interactive Miniature</span>
+
+            <!-- Mini Sticky Note Widget Preview -->
+            <div style="width: 280px; display: flex; flex-direction: column; gap: 8px;">
+              <!-- Mini Header -->
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 11px; font-weight: 700; color: #fff;">Stickk · Sketchpad</span>
+                <!-- Segmented Page Capsule -->
+                <div class="stickk-pages-capsule">
+                  <span class="stickk-page-label">Page:</span>
+                  <button type="button" class="stickk-page-pill active" onclick="setPreviewStickyPage(1)">1</button>
+                  <button type="button" class="stickk-page-pill" onclick="setPreviewStickyPage(2)">2</button>
+                  <button type="button" class="stickk-page-pill" onclick="setPreviewStickyPage(3)">3</button>
+                  <button type="button" class="stickk-page-add-btn">+</button>
+                </div>
+              </div>
+
+              <!-- Mini Sticky Paper Note -->
+              <div class="sticky-mini-note sticky-theme-yellow" id="preview-sticky-note">
+                <div style="font-size: 12px; font-family: sans-serif; font-weight: 700; opacity: 0.7; margin-bottom: 4px;">Page 1 · Caveat</div>
+                <p id="preview-note-text">
+                  1. Test refined 3.5px modal scrollbar 📜<br>
+                  2. Verify 340px compact desktop scale 📌<br>
+                  3. Enjoy clean Burnt Orange buttons ✨
+                </p>
+              </div>
+
+              <!-- Theme dots -->
+              <div style="display: flex; gap: 6px; align-items: center; justify-content: flex-end; padding-top: 4px;">
+                <span style="font-size: 10px; color: #797979;">Theme:</span>
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #FEF08A; cursor: pointer; border: 2px solid #fff;" onclick="setPreviewStickyTheme('theme-yellow')"></span>
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #FED7AA; cursor: pointer;" onclick="setPreviewStickyTheme('theme-orange')"></span>
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #A7F3D0; cursor: pointer;" onclick="setPreviewStickyTheme('theme-mint')"></span>
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #E9D5FF; cursor: pointer;" onclick="setPreviewStickyTheme('theme-lavender')"></span>
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #1F2023; cursor: pointer;" onclick="setPreviewStickyTheme('theme-dark')"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Details with Inset Subtle Scrollbar (Screenshot 2) -->
+          <div class="modal-details-col">
+            <!-- Scrollable Body (Only this area scrolls) -->
+            <div class="modal-info-scroll-body">
+              <div>
+                <h4 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #797979; margin-bottom: 6px;">Overview</h4>
+                <p style="font-size: 13.5px; color: #CCC; line-height: 1.55;">
+                  A fancy sticky note sketchpad designed for spontaneous desktop thoughts, checklists, and doodles. Switch effortlessly between typing with 5 expressive funky fonts or freehand sketching with responsive multi-color digital ink.
+                </p>
+              </div>
+
+              <!-- Specs Box -->
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #181818; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px;">
+                <div>
+                  <div style="font-size: 10px; color: #797979; text-transform: uppercase;">Compact Size</div>
+                  <div style="font-size: 12px; font-weight: 700; color: #fff;">340 × 430 px</div>
+                </div>
+                <div>
+                  <div style="font-size: 10px; color: #797979; text-transform: uppercase;">Position Memory</div>
+                  <div style="font-size: 12px; font-weight: 700; color: #fff;">Auto-Saves (X, Y)</div>
+                </div>
+                <div>
+                  <div style="font-size: 10px; color: #797979; text-transform: uppercase;">Window Style</div>
+                  <div style="font-size: 12px; font-weight: 700; color: #00C853;">Frameless Glass</div>
+                </div>
+              </div>
+
+              <!-- Key Features -->
+              <div>
+                <h4 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #797979; margin-bottom: 8px;">Key Features</h4>
+                <ul style="list-style: none; display: flex; flex-direction: column; gap: 7px; font-size: 13px; color: #BBB;">
+                  <li style="display: flex; gap: 8px; align-items: center;"><span style="color: #00C853; font-weight: 800;">✓</span> 5 Funky handwritten fonts: Caveat, Comic Neue, Gloria, Pacifico, Marker</li>
+                  <li style="display: flex; gap: 8px; align-items: center;"><span style="color: #00C853; font-weight: 800;">✓</span> Responsive doodle ink canvas with multi-color ink swatches</li>
+                  <li style="display: flex; gap: 8px; align-items: center;"><span style="color: #00C853; font-weight: 800;">✓</span> 3D curling page flip animation with stereo acoustic sound</li>
+                  <li style="display: flex; gap: 8px; align-items: center;"><span style="color: #00C853; font-weight: 800;">✓</span> Realistic paper rip &amp; tear discard animation when deleting pages</li>
+                  <li style="display: flex; gap: 8px; align-items: center;"><span style="color: #00C853; font-weight: 800;">✓</span> 5 pastel aesthetic paper themes with persistent local storage</li>
+                  <li style="display: flex; gap: 8px; align-items: center;"><span style="color: #00C853; font-weight: 800;">✓</span> Zero browser scrollbars with proportionate ~340px desktop frame</li>
+                </ul>
+              </div>
+
+              <!-- Extra instructions for scroll showcase -->
+              <div>
+                <h4 style="font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #797979; margin-bottom: 6px;">How to use on Desktop</h4>
+                <p style="font-size: 13px; color: #999; line-height: 1.5;">
+                  Click "Pin to Desktop" below to launch Stickk directly onto your Windows wallpaper. Use the top grip bar to position it anywhere. Toggle the pin icon (📌) to keep it Always-on-Top over active coding and browser windows.
+                </p>
+              </div>
+            </div>
+
+            <!-- Fixed Bottom Action Bar (Screenshot 2 Alignment) -->
+            <div class="modal-action-footer">
+              <div class="footer-stats">
+                <span>⭐ <strong>5.0</strong> (15.1k users)</span>
+                <span>·</span>
+                <span style="color: #00C853;">● Ready</span>
+              </div>
+              <div class="footer-buttons">
+                <button type="button" class="secondary-icon-btn" title="Toggle Always on Top">📌</button>
+                <button type="button" class="pin-primary-btn">
+                  <span>📌 Pin to Desktop</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison Explanations -->
+    <div class="comparison-grid">
+      <div class="comp-card bad">
+        <span class="comp-badge">Screenshot 1 (Before)</span>
+        <h4 class="comp-title">Outer White Browser Scrollbar</h4>
+        <p class="comp-desc">The entire modal grid had <code>overflow-y: auto</code>, placing an unstyled, thick white scrollbar on the modal's outer perimeter.</p>
+      </div>
+      <div class="comp-card good">
+        <span class="comp-badge">Screenshot 2 (After)</span>
+        <h4 class="comp-title">Inset 3.5px Subtle Grey Scrollbar</h4>
+        <p class="comp-desc">Outer modal has <code>overflow: hidden</code>. The scrollbar is inside the right details column, 3.5px thin, semi-transparent, and docked cleanly.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: PINNED DESKTOP WIDGETS (Screenshot 4 Alignment) -->
+  <!-- ========================================================================= -->
+  <section id="tab-gadgets" class="section-wrap">
+    <div class="section-header">
+      <h2 class="section-heading">2. Proportionate Desktop Gadgets (340px Width)</h2>
+      <p class="section-desc">
+        Matches <strong>Screenshot 4</strong>: Pinned widgets are scaled down from 426px to a compact <strong>340px width</strong> so they do not dominate the screen or stretch across the entire desktop. The top chrome is ultra-minimal (✏️ customize, 📌 always-on-top, ✕ close), and all bottom buttons are docked with zero clipping.
+      </p>
+    </div>
+
+    <div class="desktop-wallpaper-sim">
+      <div class="wallpaper-watermark">DESKTOP WALLPAPER</div>
+
+      <!-- Widget 1: Stickk (340 x 430px) -->
+      <div class="pinned-gadget-shell" style="height: 430px;">
+        <!-- Minimal Top Bar (Screenshot 4) -->
+        <div class="gadget-chrome-minimal">
+          <div class="gadget-title-left">
+            <span class="dot"></span>
+            <span>Stickk · Notes</span>
+          </div>
+          <div class="gadget-actions-right">
+            <button type="button" class="gadget-action-btn" title="Open Uwidgets Suite">🎨</button>
+            <button type="button" class="gadget-action-btn" title="Pin Always on Top">📌</button>
+            <button type="button" class="gadget-action-btn" title="Close Widget">✕</button>
+          </div>
+        </div>
+
+        <!-- Sticky Note Content -->
+        <div style="flex: 1; display: flex; flex-direction: column; padding: 12px; gap: 8px; min-height: 0;">
+          <!-- Top Page Bar with Burnt Orange Capsule -->
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 12px; font-weight: 700; color: #fff;">Ideas &amp; Tasks</span>
+            <div class="stickk-pages-capsule">
+              <span class="stickk-page-label">Page:</span>
+              <button type="button" class="stickk-page-pill active">1</button>
+              <button type="button" class="stickk-page-pill">2</button>
+              <button type="button" class="stickk-page-pill">3</button>
+              <button type="button" class="stickk-page-add-btn">+</button>
+            </div>
+          </div>
+
+          <!-- Note Surface -->
+          <div class="sticky-mini-note sticky-theme-yellow" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <p style="font-size: 16px;">
+              • Compact 340px width<br>
+              • Minimal top-right icons<br>
+              • Smooth page curl animation<br>
+              • Tear-off discard sound
+            </p>
+            <div style="font-size: 11px; font-family: sans-serif; opacity: 0.6; text-align: right;">Updated Just Now</div>
+          </div>
+
+          <!-- Font selector pills -->
+          <div style="display: flex; gap: 4px; overflow-x: auto; padding: 2px 0;">
+            <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #262626; color: #fff; font-family: 'Caveat';">Caveat</span>
+            <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #1C1C1C; color: #888; font-family: 'Comic Neue';">Comic</span>
+            <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #1C1C1C; color: #888; font-family: 'Gloria Hallelujah';">Gloria</span>
+            <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #1C1C1C; color: #888; font-family: 'Pacifico';">Pacifico</span>
+          </div>
+        </div>
+
+        <!-- Docked Bottom Toolbar — 100% Visible, ZERO Clipping -->
+        <div class="sticky-docked-footer">
+          <button type="button" class="sticky-flip-btn">
+            <span>Flip Next Page</span>
+            <span>→</span>
+          </button>
+          <div class="sticky-icon-actions">
+            <button type="button" class="sticky-mini-icon-btn btn-danger" title="Tear / Delete Page">🗑️</button>
+            <button type="button" class="sticky-mini-icon-btn" title="Clear Canvas">🧹</button>
+            <button type="button" class="sticky-mini-icon-btn" title="Export Note">⤓</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Widget 2: Playz (340 x 460px) -->
+      <div class="pinned-gadget-shell" style="height: 460px;">
+        <div class="gadget-chrome-minimal">
+          <div class="gadget-title-left">
+            <span class="dot" style="background: #00C853;"></span>
+            <span>Playz · Tic-Tac-Toe</span>
+          </div>
+          <div class="gadget-actions-right">
+            <button type="button" class="gadget-action-btn" title="Open Uwidgets Suite">🎨</button>
+            <button type="button" class="gadget-action-btn" title="Pin Always on Top">📌</button>
+            <button type="button" class="gadget-action-btn" title="Close Widget">✕</button>
+          </div>
+        </div>
+
+        <!-- Scoreboard with Burnt Orange Segmented Mode -->
+        <div style="padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; gap: 12px; font-size: 12px;">
+            <div><span style="color: #797979;">YOU (X):</span> <strong style="color: #D05300; font-size: 14px;">2</strong></div>
+            <div><span style="color: #797979;">CPU (O):</span> <strong style="color: #00C853; font-size: 14px;">1</strong></div>
+          </div>
+          <!-- Mode Segmented Capsule -->
+          <div class="playz-mode-segmented">
+            <button type="button" class="playz-mode-pill">Easy</button>
+            <button type="button" class="playz-mode-pill active">Hard</button>
+            <button type="button" class="playz-mode-pill">2P</button>
+          </div>
+        </div>
+
+        <!-- 3x3 Arena (Compact 200px) -->
+        <div class="playz-mini-arena">
+          <div style="font-size: 11px; color: #00C853; font-weight: 600;">Round 4 of 5 · Your Turn (X)</div>
+          <div class="playz-mini-board">
+            <div class="playz-mini-cell mark-x">✕</div>
+            <div class="playz-mini-cell mark-o">○</div>
+            <div class="playz-mini-cell mark-x">✕</div>
+            <div class="playz-mini-cell mark-o">○</div>
+            <div class="playz-mini-cell mark-x">✕</div>
+            <div class="playz-mini-cell"></div>
+            <div class="playz-mini-cell"></div>
+            <div class="playz-mini-cell"></div>
+            <div class="playz-mini-cell mark-o">○</div>
+          </div>
+        </div>
+
+        <!-- Docked Bottom Controls — 100% Visible, ZERO Clipping -->
+        <div class="playz-docked-footer">
+          <button type="button" class="playz-round-btn">
+            <span>▶ Next Round</span>
+          </button>
+          <button type="button" class="sticky-mini-icon-btn" title="Confetti Celebration">🎉</button>
+          <button type="button" class="sticky-mini-icon-btn" title="Reset 5-Round Match">↺</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 3: BUTTON DESIGN SYSTEM ALIGNMENT -->
+  <!-- ========================================================================= -->
+  <section id="tab-buttons" class="section-wrap">
+    <div class="section-header">
+      <h2 class="section-heading">3. Design System Alignment for Buttons</h2>
+      <p class="section-desc">
+        Replaces unstyled HTML boxes and dull grey backgrounds with the official <strong>Uwidgets Burnt Orange (#D05300)</strong> segmented pill design tokens.
+      </p>
+    </div>
+
+    <div class="btn-showcase-grid">
+      <!-- Stickk Page Switcher -->
+      <div class="showcase-card">
+        <div class="showcase-title">
+          <span>Stickk Page Switcher</span>
+          <span class="showcase-tag">Refined Capsule</span>
+        </div>
+        <p style="font-size: 13px; color: #999;">
+          Old build had unstyled black-on-white square buttons. Refined build uses a smooth dark capsule with Burnt Orange active page glow:
+        </p>
+        <div style="padding: 12px 0;">
+          <div class="stickk-pages-capsule">
+            <span class="stickk-page-label">Page:</span>
+            <button type="button" class="stickk-page-pill active">1</button>
+            <button type="button" class="stickk-page-pill">2</button>
+            <button type="button" class="stickk-page-pill">3</button>
+            <button type="button" class="stickk-page-add-btn" title="Add Page">+</button>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #797979;">
+          • Background: <code>#1C1C1C</code> | Active Pill: <code>#D05300</code> with <code>box-shadow</code>
+        </div>
+      </div>
+
+      <!-- Playz Game Mode Selector -->
+      <div class="showcase-card">
+        <div class="showcase-title">
+          <span>Playz Game Mode Selector</span>
+          <span class="showcase-tag">Segmented Control</span>
+        </div>
+        <p style="font-size: 13px; color: #999;">
+          Old build used dull grey <code>bg-[#262626]</code>. Refined build uses the official elevated segmented control with vibrant Burnt Orange feedback:
+        </p>
+        <div style="padding: 12px 0;">
+          <div class="playz-mode-segmented">
+            <button type="button" class="playz-mode-pill">Easy</button>
+            <button type="button" class="playz-mode-pill active">Hard (AI)</button>
+            <button type="button" class="playz-mode-pill">2P Mode</button>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #797979;">
+          • Elevated pill with instant active transition and Minimax AI integration.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 4: TITLEBAR SINGLE TRAY COMPARISON -->
+  <!-- ========================================================================= -->
+  <section id="tab-titlebar" class="section-wrap">
+    <div class="section-header">
+      <h2 class="section-heading">4. Window Caption Controls (Single Tray)</h2>
+      <p class="section-desc">
+        Resolves the duplicate trays seen in <strong>Screenshot 1</strong> where both the native Windows OS frame and an inner React bar rendered minimize/maximize/close buttons.
+      </p>
+    </div>
+
+    <div class="comparison-grid">
+      <!-- Before -->
+      <div class="comp-card bad">
+        <span class="comp-badge">Screenshot 1 (Before)</span>
+        <h4 class="comp-title">Double Window Trays</h4>
+        <div style="background: #000; border-radius: 8px; padding: 12px; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1);">
+          <div style="display: flex; justify-content: flex-end; gap: 8px; border-bottom: 1px solid #333; padding-bottom: 4px; color: #fff; font-size: 10px;">
+            <span>—</span><span>□</span><span>✕</span> <span style="color: #EF4444; font-size: 10px;">(Windows OS Frame)</span>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; color: #888; font-size: 10px;">
+            <span>—</span><span>□</span><span>✕</span> <span style="color: #EF4444; font-size: 10px;">(Duplicate Inner React Tray)</span>
+          </div>
+        </div>
+        <p class="comp-desc">Two trays stacked vertically created visual confusion and wasted window header space.</p>
+      </div>
+
+      <!-- After -->
+      <div class="comp-card good">
+        <span class="comp-badge">Refined (After)</span>
+        <h4 class="comp-title">Clean Single Titlebar</h4>
+        <div style="background: #000; border-radius: 8px; padding: 12px; margin: 10px 0; border: 1px solid rgba(255,255,255,0.1);">
+          <div style="display: flex; justify-content: space-between; align-items: center; color: #fff; font-size: 11px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 14px; height: 14px; border-radius: 3px; background: #D05300; display: inline-block;"></span>
+              <strong>Uwidgets</strong> <span style="color: #797979;">v1.0</span>
+            </div>
+            <div style="display: flex; gap: 10px; color: #fff; font-size: 11px;">
+              <span>—</span><span>□</span><span style="color: #E81123;">✕</span>
+            </div>
+          </div>
+        </div>
+        <p class="comp-desc">Inner duplicate controls are completely removed. Clean native Windows controls manage the window seamlessly.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Scripts -->
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.section-wrap').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.preview-tab-btn').forEach(el => el.classList.remove('active'));
+
+      const target = document.getElementById('tab-' + tabId);
+      if (target) target.classList.add('active');
+
+      const btn = Array.from(document.querySelectorAll('.preview-tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+      if (btn) btn.classList.add('active');
+    }
+
+    function setPreviewStickyTheme(themeClass) {
+      const note = document.getElementById('preview-sticky-note');
+      note.className = 'sticky-mini-note ' + themeClass;
+    }
+
+    function setPreviewStickyPage(num) {
+      document.querySelectorAll('.stickk-page-pill').forEach((pill, i) => {
+        if (i + 1 === num) pill.classList.add('active');
+        else pill.classList.remove('active');
+      });
+
+      const noteText = document.getElementById('preview-note-text');
+      if (num === 1) {
+        noteText.innerHTML = "1. Test refined 3.5px modal scrollbar 📜<br>2. Verify 340px compact desktop scale 📌<br>3. Enjoy clean Burnt Orange buttons ✨";
+      } else if (num === 2) {
+        noteText.innerHTML = "Page 2: Meeting Notes 📝<br>• Standup at 10 AM<br>• Uwidgets Release Verification<br>• Multi-window IPC tested";
+      } else {
+        noteText.innerHTML = "Page 3: Quick Ideas 💡<br>• Solari split-flap mechanical sound<br>• Best-of-5 confetti pop<br>• Tearable page animations";
+      }
+    }
+  </script>
+</body>
+</html>

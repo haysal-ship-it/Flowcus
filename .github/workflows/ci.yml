@@ -1,0 +1,44 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: Build & Test (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies (reproducible npm ci)
+        run: npm ci
+
+      - name: Strict TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Code quality & character integrity lint
+        run: npm run lint
+
+      - name: Automated regression tests (W01–W08)
+        run: npm test
+
+      - name: Production client build
+        run: npm run build
+
+      - name: Verify Windows unpacked packaging
+        run: npm run package:win
