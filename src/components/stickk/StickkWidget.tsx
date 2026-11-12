@@ -624,7 +624,7 @@ export const StickkWidget: React.FC<StickkWidgetProps> = ({
 
         {/* Row 2: Page Navigation Capsule */}
         <div className="stickk-toolbar-row" style={{ paddingTop: '4px' }}>
-          <div className="stickk-pages-capsule" style={{ width: '100%', justifyContent: 'flex-start' }}>
+          <div className="stickk-pages-capsule" style={{ width: 'auto', display: 'inline-flex' }}>
             <span className="stickk-page-label">Page:</span>
             {pages.map((p, i) => (
               <button

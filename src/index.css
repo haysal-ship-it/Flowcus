@@ -2457,6 +2457,8 @@ select:focus:not(:focus-visible) {
 .uwidget-floating-root #playz-widget-root .uwidget-card-bottom,
 .uwidget-floating-root #stickk-widget-root .uwidget-card-top,
 .uwidget-floating-root #stickk-widget-root .uwidget-card-bottom {
+  width: auto !important;
+  max-width: calc(100% - 20px) !important;
   background-color: #09090B !important;
   border: 1px solid rgba(255, 255, 255, 0.07) !important;
   border-radius: 14px !important;
