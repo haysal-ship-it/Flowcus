@@ -612,15 +612,19 @@ export const StickkWidget: React.FC<StickkWidgetProps> = ({
     <div className="uwidget-shell" id="stickk-widget-root">
       <WidgetChrome title="Stickk" tag="Sketchpad" widgetId="stickk" isPreview={isPreview} />
 
-      {/* Surface 1: Navigation & Theme Selector */}
+      {/* Surface 1: Navigation & Theme Selector (RC2 Deliberate 4-Row Compact Layout) */}
       <section className="uwidget-card-top" style={{ padding: '8px 12px', minHeight: 'auto' }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="card-title" style={{ fontSize: '13px' }}>Stickk Notes</h2>
-            <p className="card-subtitle" style={{ fontSize: '11px' }}>Page {activePageIndex + 1} of {pages.length} · {activePage?.font.replace('font-', '')}</p>
-          </div>
-          {/* Official Design System Segmented Capsule */}
-          <div className="stickk-pages-capsule">
+        {/* Row 1: Title and Status */}
+        <div className="stickk-toolbar-row">
+          <h2 className="card-title" style={{ fontSize: '13px', margin: 0 }}>Stickk Notes</h2>
+          <span className="card-subtitle" style={{ fontSize: '11px', color: '#797979' }}>
+            Page {activePageIndex + 1} of {pages.length} · {activePage?.font.replace('font-', '')}
+          </span>
+        </div>
+
+        {/* Row 2: Page Navigation Capsule */}
+        <div className="stickk-toolbar-row" style={{ paddingTop: '4px' }}>
+          <div className="stickk-pages-capsule" style={{ width: '100%', justifyContent: 'flex-start' }}>
             <span className="stickk-page-label">Page:</span>
             {pages.map((p, i) => (
               <button
@@ -645,36 +649,45 @@ export const StickkWidget: React.FC<StickkWidgetProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-1.5">
+        {/* Row 3: Theme Swatches */}
+        <div className="stickk-toolbar-row" style={{ paddingTop: '6px' }}>
+          <div className="stickk-toolbar-group">
             <span className="text-xs" style={{ color: '#797979', fontSize: '11px' }}>Theme:</span>
-            {(['theme-yellow', 'theme-orange', 'theme-mint', 'theme-lavender', 'theme-dark'] as StickkTheme[]).map(th => {
-              const bg = th === 'theme-yellow' ? '#FEF08A' : th === 'theme-orange' ? '#FED7AA' : th === 'theme-mint' ? '#A7F3D0' : th === 'theme-lavender' ? '#E9D5FF' : '#1F2023';
-              return (
-                <button
-                  key={th}
-                  type="button"
-                  className={`theme-swatch-circle ${activePage?.theme === th ? 'active' : ''}`}
-                  style={{
-                    background: bg,
-                    width: '15px',
-                    height: '15px',
-                    minWidth: '15px',
-                    minHeight: '15px',
-                    flexShrink: 0,
-                    borderRadius: '50%',
-                    cursor: 'pointer',
-                    border: activePage?.theme === th ? '2px solid #FFFFFF' : '1px solid rgba(255,255,255,0.2)',
-                  }}
-                  onClick={() => handleSetTheme(th)}
-                  aria-label={th}
-                />
-              );
-            })}
+            <div className="stickk-toolbar-group" role="radiogroup" aria-label="Note theme">
+              {(['theme-yellow', 'theme-orange', 'theme-mint', 'theme-lavender', 'theme-dark'] as StickkTheme[]).map(th => {
+                const bg = th === 'theme-yellow' ? '#FEF08A' : th === 'theme-orange' ? '#FED7AA' : th === 'theme-mint' ? '#A7F3D0' : th === 'theme-lavender' ? '#E9D5FF' : '#1F2023';
+                const isSelected = activePage?.theme === th;
+                return (
+                  <button
+                    key={th}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    className={`theme-swatch-circle ${isSelected ? 'active' : ''}`}
+                    style={{
+                      background: bg,
+                      width: '16px',
+                      height: '16px',
+                      minWidth: '16px',
+                      minHeight: '16px',
+                      flexShrink: 0,
+                      borderRadius: '50%',
+                      cursor: 'pointer',
+                      border: isSelected ? '2px solid #FFFFFF' : '1px solid rgba(255,255,255,0.2)',
+                      boxShadow: isSelected ? '0 0 0 1px #000000, 0 0 6px rgba(255,255,255,0.4)' : 'none',
+                    }}
+                    onClick={() => handleSetTheme(th)}
+                    aria-label={`Theme ${th.replace('theme-', '')}`}
+                  />
+                );
+              })}
+            </div>
           </div>
+        </div>
 
-          {/* Audit 22: Save state indicator & Export / Import actions */}
-          <div className="flex items-center gap-1.5">
+        {/* Row 4: Data Actions & Save Feedback */}
+        <div className="stickk-toolbar-row" style={{ paddingTop: '6px' }}>
+          <div className="stickk-toolbar-group">
             {saveStatus === 'saving' && (
               <span className="stickk-save-indicator saving" title="Saving notes...">
                 <span className="stickk-save-dot" />
@@ -697,7 +710,12 @@ export const StickkWidget: React.FC<StickkWidgetProps> = ({
                 <span>⚠ Retry</span>
               </button>
             )}
+            {saveStatus === 'idle' && (
+              <span style={{ fontSize: '10px', color: '#666666' }}>Auto-save active</span>
+            )}
+          </div>
 
+          <div className="stickk-toolbar-group">
             <button
               type="button"
               className="stickk-mini-btn"
@@ -716,15 +734,16 @@ export const StickkWidget: React.FC<StickkWidgetProps> = ({
             >
               Import
             </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept=".json"
-              style={{ display: 'none' }}
-            />
           </div>
         </div>
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept=".json"
+          style={{ display: 'none' }}
+        />
       </section>
 
       {/* Surface 2: 3D Animated Sticky Note Pad */}

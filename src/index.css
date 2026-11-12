@@ -2417,18 +2417,19 @@ select:focus:not(:focus-visible) {
   display: none !important;
 }
 
-/* Strip outer black/translucent container entirely in floating desktop widget mode */
+/* 1. Continuous Opaque Charcoal Shell in Floating Desktop Widget Mode (RC2) */
 .uwidget-floating-root .flowcus-shell-container,
 .uwidget-floating-root .uwidget-shell {
   width: 100% !important;
   height: 100% !important;
   max-width: 100% !important;
   max-height: 100% !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 2px !important;
+  background-color: #1C1E22 !important;
+  background: #1C1E22 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  padding: 0 !important;
   margin: 0 !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
@@ -2436,31 +2437,51 @@ select:focus:not(:focus-visible) {
   -webkit-backdrop-filter: none !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 5px !important;
+  gap: 0 !important;
 }
 
-/* Pinned Desktop Cards: The signature two panels float directly on wallpaper */
+.uwidget-floating-root .flowcus-widget-content-wrap {
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+/* Inset Content Panels: Solid Black Panels Inset in Charcoal Shell (RC2) */
 .uwidget-floating-root .flowcus-daily-progress-card,
 .uwidget-floating-root .flowcus-lower-panel,
-.uwidget-floating-root .uwidget-card-top,
-.uwidget-floating-root .uwidget-card-bottom {
-  background-color: #090909 !important;
-  border: 1px solid rgba(255, 255, 255, 0.09) !important;
-  border-radius: 20px !important;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+.uwidget-floating-root #playz-widget-root .uwidget-card-top,
+.uwidget-floating-root #playz-widget-root .uwidget-card-bottom,
+.uwidget-floating-root #stickk-widget-root .uwidget-card-top,
+.uwidget-floating-root #stickk-widget-root .uwidget-card-bottom {
+  background-color: #09090B !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 14px !important;
+  margin: 0 10px 8px 10px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  box-sizing: border-box !important;
 }
 
-/* Proportionate Desktop Scaling & Zero Button Clipping in Flowcus */
+.uwidget-floating-root .flowcus-lower-panel,
+.uwidget-floating-root #playz-widget-root .uwidget-card-bottom,
+.uwidget-floating-root #stickk-widget-root .uwidget-card-bottom {
+  margin-bottom: 10px !important;
+}
+
+/* Proportionate Desktop Scaling & Zero Button Clipping in Flowcus (RC2) */
 .uwidget-floating-root .flowcus-daily-progress-card {
   height: auto !important;
-  min-height: 116px !important;
-  padding: 12px 14px !important;
-  border-radius: 18px !important;
-  gap: 8px !important;
+  min-height: 104px !important;
+  padding: 10px 14px !important;
+  border-radius: 14px !important;
+  gap: 6px !important;
 }
 
 .uwidget-floating-root .flowcus-progress-title-block {
-  margin-bottom: 6px !important;
+  margin-bottom: 4px !important;
 }
 
 .uwidget-floating-root .flowcus-card-title {
@@ -2477,8 +2498,8 @@ select:focus:not(:focus-visible) {
 }
 
 .uwidget-floating-root .flowcus-lower-panel {
-  padding: 12px 14px !important;
-  border-radius: 18px !important;
+  padding: 10px 14px !important;
+  border-radius: 14px !important;
   min-height: 0 !important;
   flex: 1 !important;
   display: flex !important;
@@ -2575,30 +2596,47 @@ select:focus:not(:focus-visible) {
   display: none !important;
 }
 
-/* Floating Chrome Top Pill */
+/* Integrated Shell Header (RC2) */
 .uwidget-floating-root .uwidget-chrome-minimal {
-  height: 26px !important;
-  min-height: 26px !important;
-  padding: 0 10px !important;
-  margin-bottom: 4px !important;
-  background: rgba(16, 16, 16, 0.85) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 13px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 14px !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
   flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-/* Playz Scaling & Docked Controls */
+.uwidget-floating-root .chrome-icon-btn {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.uwidget-floating-root .chrome-icon-btn:focus-visible {
+  outline: 2px solid var(--color-focus-ring, #D05300) !important;
+  outline-offset: 1px !important;
+}
+
+/* Playz Scaling & Docked Controls (RC2) */
 .uwidget-floating-root #playz-widget-root .uwidget-card-top {
   padding: 8px 12px !important;
   gap: 6px !important;
-  border-radius: 18px !important;
+  border-radius: 14px !important;
 }
 
 .uwidget-floating-root #playz-widget-root .uwidget-card-bottom {
-  padding: 10px 12px !important;
-  border-radius: 18px !important;
+  padding: 8px 12px 10px 12px !important;
+  border-radius: 14px !important;
   flex: 1 !important;
   min-height: 0 !important;
   display: flex !important;
@@ -2623,12 +2661,11 @@ select:focus:not(:focus-visible) {
   flex-shrink: 0 !important;
 }
 
-/* Stickk Scaling & Elastic Flexbox Chain (Guaranteed Visible Controls) */
+/* Stickk Scaling & Elastic Flexbox Chain (Guaranteed Visible Controls - RC2) */
 .uwidget-floating-root #stickk-widget-root .uwidget-card-top {
   flex-shrink: 0 !important;
   padding: 8px 12px !important;
-  gap: 6px !important;
-  border-radius: 18px !important;
+  border-radius: 14px !important;
 }
 
 .uwidget-floating-root #stickk-widget-root .uwidget-card-bottom {
@@ -2637,8 +2674,8 @@ select:focus:not(:focus-visible) {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  padding: 10px 12px !important;
-  border-radius: 18px !important;
+  padding: 8px 10px !important;
+  border-radius: 14px !important;
 }
 
 .uwidget-floating-root #stickk-widget-root .sketchpad-perspective-viewport {
@@ -4280,6 +4317,21 @@ select:focus:not(:focus-visible) {
 .chrome-icon-btn.close-btn:hover {
   background: rgba(232, 17, 35, 0.2);
   color: #FF5252;
+}
+
+/* Stickk Dedicated Multi-Row Toolbar (RC2) */
+.stickk-toolbar-row {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.stickk-toolbar-group {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
 }
 
 /* 2. Stickk Page Switcher Capsule (Design System Alignment) */
