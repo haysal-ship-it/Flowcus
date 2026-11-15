@@ -19,7 +19,7 @@ export const ManagerCatalog: React.FC<ManagerCatalogProps> = ({
 }) => {
   const [filter, setFilter] = useState<string>('All');
 
-  const categories = ['All', 'Productivity', 'Games', 'Utility'];
+  const categories = ['All', 'Productivity', 'Games', 'Utility', 'Mindfulness', 'System'];
 
   const filtered = filter === 'All'
     ? WIDGETS_CATALOG

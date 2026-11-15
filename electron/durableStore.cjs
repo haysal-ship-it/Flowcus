@@ -20,9 +20,9 @@ function getDefaultState() {
     revision: 1,
     migrationMarkers: {},
     desktop: {
-      pinned: { flowcus: false, playz: false, stickk: false },
-      restoreOnStartup: { flowcus: false, playz: false, stickk: false },
-      open: { flowcus: false, playz: false, stickk: false }, // Backwards compatibility
+      pinned: { flowcus: false, playz: false, stickk: false, blockz: false, quotz: false, ayah: false, statz: false, rowz: false },
+      restoreOnStartup: { flowcus: false, playz: false, stickk: false, blockz: false, quotz: false, ayah: false, statz: false, rowz: false },
+      open: { flowcus: false, playz: false, stickk: false, blockz: false, quotz: false, ayah: false, statz: false, rowz: false }, // Backwards compatibility
       positions: {},
       scaleFactor: 1.0,
       startWithWindows: false,

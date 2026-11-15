@@ -32,6 +32,7 @@ const {
   getDefaultWidgetBounds,
   clampBoundsToDisplays,
 } = require('./displayBounds.cjs');
+const { getMemoryStats } = require('./systemMonitor.cjs');
 
 // Set Application User Model ID for Windows Taskbar & Start Menu grouping
 app.setAppUserModelId('com.uwidgets.desktop');
@@ -54,6 +55,11 @@ const widgetWindows = {
   flowcus: null,
   playz: null,
   stickk: null,
+  blockz: null,
+  quotz: null,
+  ayah: null,
+  statz: null,
+  rowz: null,
 };
 
 // Persistent state file in userData
@@ -113,12 +119,13 @@ function saveState() {
 }
 
 function broadcastStateChange() {
+  const open = {};
+  for (const [id, win] of Object.entries(widgetWindows)) {
+    open[id] = Boolean(win && !win.isDestroyed());
+  }
+
   const payload = {
-    open: {
-      flowcus: Boolean(widgetWindows.flowcus && !widgetWindows.flowcus.isDestroyed()),
-      playz: Boolean(widgetWindows.playz && !widgetWindows.playz.isDestroyed()),
-      stickk: Boolean(widgetWindows.stickk && !widgetWindows.stickk.isDestroyed()),
-    },
+    open,
     pinned: { ...appState.pinned },
     restoreOnStartup: { ...appState.restoreOnStartup },
   };
@@ -557,9 +564,7 @@ function createTray() {
 function updateTrayMenu() {
   if (!tray) return;
 
-  const isFlowcusOpen = Boolean(widgetWindows.flowcus && !widgetWindows.flowcus.isDestroyed());
-  const isPlayzOpen = Boolean(widgetWindows.playz && !widgetWindows.playz.isDestroyed());
-  const isStickkOpen = Boolean(widgetWindows.stickk && !widgetWindows.stickk.isDestroyed());
+  const isWidgetOpen = (id) => Boolean(widgetWindows[id] && !widgetWindows[id].isDestroyed());
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -570,20 +575,50 @@ function updateTrayMenu() {
     {
       label: 'Flowcus (Tasks & Focus)',
       type: 'checkbox',
-      checked: isFlowcusOpen,
-      click: () => (isFlowcusOpen ? closeFloatingWidgetWindow('flowcus', true) : createFloatingWidgetWindow('flowcus')),
+      checked: isWidgetOpen('flowcus'),
+      click: () => (isWidgetOpen('flowcus') ? closeFloatingWidgetWindow('flowcus', true) : createFloatingWidgetWindow('flowcus')),
     },
     {
       label: 'Playz (Tic-Tac-Toe)',
       type: 'checkbox',
-      checked: isPlayzOpen,
-      click: () => (isPlayzOpen ? closeFloatingWidgetWindow('playz', true) : createFloatingWidgetWindow('playz')),
+      checked: isWidgetOpen('playz'),
+      click: () => (isWidgetOpen('playz') ? closeFloatingWidgetWindow('playz', true) : createFloatingWidgetWindow('playz')),
     },
     {
       label: 'Stickk (Sticky Sketchpad)',
       type: 'checkbox',
-      checked: isStickkOpen,
-      click: () => (isStickkOpen ? closeFloatingWidgetWindow('stickk', true) : createFloatingWidgetWindow('stickk')),
+      checked: isWidgetOpen('stickk'),
+      click: () => (isWidgetOpen('stickk') ? closeFloatingWidgetWindow('stickk', true) : createFloatingWidgetWindow('stickk')),
+    },
+    {
+      label: 'Blockz (Retro Arcade Tetris)',
+      type: 'checkbox',
+      checked: isWidgetOpen('blockz'),
+      click: () => (isWidgetOpen('blockz') ? closeFloatingWidgetWindow('blockz', true) : createFloatingWidgetWindow('blockz')),
+    },
+    {
+      label: 'Quotz (Daily Quotes)',
+      type: 'checkbox',
+      checked: isWidgetOpen('quotz'),
+      click: () => (isWidgetOpen('quotz') ? closeFloatingWidgetWindow('quotz', true) : createFloatingWidgetWindow('quotz')),
+    },
+    {
+      label: 'Ayah (Daily Quran Verses)',
+      type: 'checkbox',
+      checked: isWidgetOpen('ayah'),
+      click: () => (isWidgetOpen('ayah') ? closeFloatingWidgetWindow('ayah', true) : createFloatingWidgetWindow('ayah')),
+    },
+    {
+      label: 'Statz (Live RAM Monitor)',
+      type: 'checkbox',
+      checked: isWidgetOpen('statz'),
+      click: () => (isWidgetOpen('statz') ? closeFloatingWidgetWindow('statz', true) : createFloatingWidgetWindow('statz')),
+    },
+    {
+      label: 'Rowz (Four-in-a-Row)',
+      type: 'checkbox',
+      checked: isWidgetOpen('rowz'),
+      click: () => (isWidgetOpen('rowz') ? closeFloatingWidgetWindow('rowz', true) : createFloatingWidgetWindow('rowz')),
     },
     { type: 'separator' },
     {
@@ -672,12 +707,13 @@ ipcMain.handle('widget:get-states', (event) => {
     return { open: {}, pinned: {} };
   }
 
+  const open = {};
+  for (const [id, win] of Object.entries(widgetWindows)) {
+    open[id] = Boolean(win && !win.isDestroyed());
+  }
+
   return {
-    open: {
-      flowcus: Boolean(widgetWindows.flowcus && !widgetWindows.flowcus.isDestroyed()),
-      playz: Boolean(widgetWindows.playz && !widgetWindows.playz.isDestroyed()),
-      stickk: Boolean(widgetWindows.stickk && !widgetWindows.stickk.isDestroyed()),
-    },
+    open,
     pinned: { ...appState.pinned },
     restoreOnStartup: { ...appState.restoreOnStartup },
   };
@@ -1042,6 +1078,23 @@ ipcMain.handle('stickk:import', (event, importData) => {
   }
 
   return { success: true, count: importData.pages.length };
+});
+
+// Statz System RAM & Process Monitor IPC
+ipcMain.handle('system:get-memory-stats', async (event) => {
+  const check = validateIpcSender(event, { allowedRoles: ['manager', 'widget'] });
+  if (!check.valid) return null;
+  return await getMemoryStats();
+});
+
+ipcMain.handle('system:open-task-manager', async (event) => {
+  const check = validateIpcSender(event, { allowedRoles: ['manager', 'widget'] });
+  if (!check.valid) return { success: false };
+  if (process.platform === 'win32') {
+    require('child_process').exec('start taskmgr.exe');
+    return { success: true };
+  }
+  return { success: false, reason: 'Unsupported platform' };
 });
 
 // Second instance focus

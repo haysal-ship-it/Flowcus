@@ -8,16 +8,34 @@ import { WidgetId } from './types';
 import { FlowcusWidget } from './components/FlowcusWidget';
 import { PlayzWidget } from './components/playz/PlayzWidget';
 import { StickkWidget } from './components/stickk/StickkWidget';
+import { BlockzWidget } from './components/blockz/BlockzWidget';
+import { QuotzWidget } from './components/quotz/QuotzWidget';
+import { AyahWidget } from './components/ayah/AyahWidget';
+import { StatzWidget } from './components/statz/StatzWidget';
+import { RowzWidget } from './components/rowz/RowzWidget';
 import { UwidgetsManager } from './components/manager/UwidgetsManager';
 import { flipAudio } from './utils/flipAudio';
 import { uwidgetsAudio } from './utils/uwidgetsAudio';
+
+const VALID_WIDGET_ROUTES: WidgetId[] = [
+  'flowcus',
+  'playz',
+  'stickk',
+  'blockz',
+  'quotz',
+  'ayah',
+  'statz',
+  'rowz',
+  'main',
+  'hub',
+];
 
 export default function App() {
   const [activeWindow, setActiveWindow] = useState<WidgetId>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const winParam = params.get('window') as WidgetId;
-      if (winParam && ['flowcus', 'playz', 'stickk', 'main', 'hub'].includes(winParam)) {
+      if (winParam && VALID_WIDGET_ROUTES.includes(winParam)) {
         return winParam;
       }
     }
@@ -41,7 +59,16 @@ export default function App() {
 
   // Set transparent window classes on body/html for floating gadget mode
   useEffect(() => {
-    const isFloating = ['flowcus', 'playz', 'stickk'].includes(activeWindow);
+    const isFloating = [
+      'flowcus',
+      'playz',
+      'stickk',
+      'blockz',
+      'quotz',
+      'ayah',
+      'statz',
+      'rowz',
+    ].includes(activeWindow);
     if (isFloating) {
       document.documentElement.classList.add('floating-widget-mode');
       document.body.classList.add('floating-widget-mode');
@@ -106,6 +133,36 @@ export default function App() {
             <StickkWidget />
           </div>
         );
+      case 'blockz':
+        return (
+          <div className="uwidget-floating-root">
+            <BlockzWidget />
+          </div>
+        );
+      case 'quotz':
+        return (
+          <div className="uwidget-floating-root">
+            <QuotzWidget />
+          </div>
+        );
+      case 'ayah':
+        return (
+          <div className="uwidget-floating-root">
+            <AyahWidget />
+          </div>
+        );
+      case 'statz':
+        return (
+          <div className="uwidget-floating-root">
+            <StatzWidget />
+          </div>
+        );
+      case 'rowz':
+        return (
+          <div className="uwidget-floating-root">
+            <RowzWidget />
+          </div>
+        );
       case 'main':
       case 'hub':
       default:
@@ -149,6 +206,41 @@ export default function App() {
             onClick={() => switchBrowserRoute('stickk')}
           >
             Stickk Gadget
+          </button>
+          <button
+            type="button"
+            className={`dev-btn ${activeWindow === 'blockz' ? 'active' : ''}`}
+            onClick={() => switchBrowserRoute('blockz')}
+          >
+            Blockz
+          </button>
+          <button
+            type="button"
+            className={`dev-btn ${activeWindow === 'quotz' ? 'active' : ''}`}
+            onClick={() => switchBrowserRoute('quotz')}
+          >
+            Quotz
+          </button>
+          <button
+            type="button"
+            className={`dev-btn ${activeWindow === 'ayah' ? 'active' : ''}`}
+            onClick={() => switchBrowserRoute('ayah')}
+          >
+            Ayah
+          </button>
+          <button
+            type="button"
+            className={`dev-btn ${activeWindow === 'statz' ? 'active' : ''}`}
+            onClick={() => switchBrowserRoute('statz')}
+          >
+            Statz
+          </button>
+          <button
+            type="button"
+            className={`dev-btn ${activeWindow === 'rowz' ? 'active' : ''}`}
+            onClick={() => switchBrowserRoute('rowz')}
+          >
+            Rowz
           </button>
         </aside>
       )}

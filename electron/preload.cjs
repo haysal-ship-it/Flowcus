@@ -47,6 +47,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   exportStickkNotes: () => ipcRenderer.invoke('stickk:export'),
   importStickkNotes: (importData) => ipcRenderer.invoke('stickk:import', importData),
 
+  // Statz System RAM & Process Monitor
+  getMemoryStats: () => ipcRenderer.invoke('system:get-memory-stats'),
+  openTaskManager: () => ipcRenderer.invoke('system:open-task-manager'),
+
   // Listeners
   onWidgetStateChange: (callback) => {
     const handler = (event, data) => callback(data);

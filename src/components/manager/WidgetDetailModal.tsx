@@ -3,6 +3,11 @@ import { WidgetMeta } from '../../types';
 import { FlowcusWidget } from '../FlowcusWidget';
 import { PlayzWidget } from '../playz/PlayzWidget';
 import { StickkWidget } from '../stickk/StickkWidget';
+import { BlockzWidget } from '../blockz/BlockzWidget';
+import { QuotzWidget } from '../quotz/QuotzWidget';
+import { AyahWidget } from '../ayah/AyahWidget';
+import { StatzWidget } from '../statz/StatzWidget';
+import { RowzWidget } from '../rowz/RowzWidget';
 
 interface WidgetDetailModalProps {
   widget: WidgetMeta | null;
@@ -157,6 +162,11 @@ export const WidgetDetailModal: React.FC<WidgetDetailModalProps> = ({
                 {widget.id === 'flowcus' && <FlowcusWidget isPreview={true} />}
                 {widget.id === 'playz' && <PlayzWidget isPreview={true} />}
                 {widget.id === 'stickk' && <StickkWidget isPreview={true} />}
+                {widget.id === 'blockz' && <BlockzWidget isPreview={true} />}
+                {widget.id === 'quotz' && <QuotzWidget isPreview={true} />}
+                {widget.id === 'ayah' && <AyahWidget isPreview={true} />}
+                {widget.id === 'statz' && <StatzWidget isPreview={true} />}
+                {widget.id === 'rowz' && <RowzWidget isPreview={true} />}
               </div>
             </div>
           </div>

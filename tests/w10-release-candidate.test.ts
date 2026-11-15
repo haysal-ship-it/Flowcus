@@ -45,6 +45,11 @@ describe('W10: Release Candidate & Release Gate Verification (Audits 29 & 35)', 
           flowcus: false,
           playz: false,
           stickk: false,
+          blockz: false,
+          quotz: false,
+          ayah: false,
+          statz: false,
+          rowz: false,
         });
         assert.deepStrictEqual(store.state.tasks, []);
         assert.deepStrictEqual(store.state.stickkPages, []);

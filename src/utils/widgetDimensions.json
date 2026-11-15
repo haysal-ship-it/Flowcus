@@ -10,5 +10,25 @@
   "stickk": {
     "width": 312,
     "height": 510
+  },
+  "blockz": {
+    "width": 312,
+    "height": 510
+  },
+  "quotz": {
+    "width": 312,
+    "height": 480
+  },
+  "ayah": {
+    "width": 312,
+    "height": 510
+  },
+  "statz": {
+    "width": 312,
+    "height": 490
+  },
+  "rowz": {
+    "width": 312,
+    "height": 500
   }
 }

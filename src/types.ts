@@ -1,14 +1,14 @@
 export type ViewMode = 'tasks' | 'focus' | 'settings';
 export type WindowWidthMode = 'mini340' | 'window480' | 'expanded';
 
-export type WidgetId = 'main' | 'flowcus' | 'playz' | 'stickk' | 'hub';
+export type WidgetId = 'main' | 'flowcus' | 'playz' | 'stickk' | 'blockz' | 'quotz' | 'ayah' | 'statz' | 'rowz' | 'hub';
 export type ManagerTab = 'home' | 'widgets' | 'favorites' | 'customize' | 'settings';
 
 export interface WidgetMeta {
-  id: 'flowcus' | 'playz' | 'stickk';
+  id: 'flowcus' | 'playz' | 'stickk' | 'blockz' | 'quotz' | 'ayah' | 'statz' | 'rowz';
   name: string;
   tagline: string;
-  category: 'Productivity' | 'Games' | 'Utility';
+  category: 'Productivity' | 'Games' | 'Utility' | 'Mindfulness' | 'System';
   badgeColor: string;
   rating?: string;
   downloads?: string;
@@ -84,6 +84,28 @@ export interface PlayzSeriesState {
   currentRound: number;
   maxRounds: number;
   mode: PlayzMode;
+}
+
+/* Statz System Memory Types */
+export interface ProcessMemoryUsage {
+  name: string;
+  pid: number;
+  memoryBytes: number;
+  memoryFormatted: string;
+  percentOfTotal: number;
+}
+
+export interface SystemMemoryStats {
+  totalBytes: number;
+  freeBytes: number;
+  usedBytes: number;
+  cachedBytes?: number;
+  usedPercent: number;
+  totalFormatted: string;
+  usedFormatted: string;
+  freeFormatted: string;
+  topProcesses: ProcessMemoryUsage[];
+  totalProcesses?: number;
 }
 
 /* Authoritative Electron IPC & Bridge Contracts (W09 - Audit 30) */
@@ -162,6 +184,10 @@ export interface ElectronAPI {
   saveStickkPages: (payload: { pages: StickkPage[]; trash?: StickkPage[] }) => Promise<{ success: boolean; error?: string }>;
   exportStickkNotes: () => Promise<{ success: boolean; data?: unknown }>;
   importStickkNotes: (importData: unknown) => Promise<{ success: boolean; pages?: StickkPage[]; error?: string }>;
+
+  // Statz System RAM & Process Monitor
+  getMemoryStats?: () => Promise<SystemMemoryStats>;
+  openTaskManager?: () => Promise<{ success: boolean }>;
 
   // Listeners
   onWidgetStateChange: (callback: (data: { open: Record<string, boolean>; pinned: Record<string, boolean>; restoreOnStartup: Record<string, boolean> }) => void) => () => void;

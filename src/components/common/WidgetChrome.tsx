@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { WidgetId } from '../../types';
 
 interface WidgetChromeProps {
   title: string;
   tag?: string;
-  widgetId: 'flowcus' | 'playz' | 'stickk' | 'hub';
+  widgetId: WidgetId;
   onClose?: () => void;
   onPinChange?: (isPinned: boolean) => void;
   initialPinned?: boolean;

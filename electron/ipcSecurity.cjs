@@ -5,7 +5,7 @@
 
 const path = require('path');
 
-const ALLOWED_WIDGET_IDS = new Set(['flowcus', 'playz', 'stickk']);
+const ALLOWED_WIDGET_IDS = new Set(['flowcus', 'playz', 'stickk', 'blockz', 'quotz', 'ayah', 'statz', 'rowz']);
 
 const ALLOWED_SETTINGS_KEYS = new Set([
   'startWithWindows',

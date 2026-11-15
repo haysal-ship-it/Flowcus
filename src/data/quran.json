@@ -1,0 +1,112 @@
+[
+  {
+    "id": "a1",
+    "surahName": "Surah Ash-Sharh",
+    "surahNumber": 94,
+    "ayahRange": "5-6",
+    "classification": "Meccan",
+    "arabic": "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا ۝ إِنَّ مَعَ الْعُسْرِ يُسْرًا",
+    "translation": "For indeed, with hardship comes ease. Indeed, with hardship comes ease.",
+    "theme": "Hope & Relief",
+    "reflection": "Ease is intertwined with difficulty; patience during trial always yields relief."
+  },
+  {
+    "id": "a2",
+    "surahName": "Surah Al-Baqarah",
+    "surahNumber": 2,
+    "ayahRange": "286",
+    "classification": "Medinan",
+    "arabic": "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا",
+    "translation": "Allah does not burden a soul beyond that it can bear.",
+    "theme": "Reassurance",
+    "reflection": "Whatever burden you carry today, your soul was built with the resilience to withstand it."
+  },
+  {
+    "id": "a3",
+    "surahName": "Surah Ar-Ra'd",
+    "surahNumber": 13,
+    "ayahRange": "28",
+    "classification": "Medinan",
+    "arabic": "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ",
+    "translation": "Unquestionably, by the remembrance of Allah hearts are assured.",
+    "theme": "Inner Peace",
+    "reflection": "True calmness of mind and spirit is unlocked through mindful gratitude and remembrance."
+  },
+  {
+    "id": "a4",
+    "surahName": "Surah Al-Imran",
+    "surahNumber": 3,
+    "ayahRange": "159",
+    "classification": "Medinan",
+    "arabic": "فَإِذَا عَزَمْتَ فَتَوَكَّلْ عَلَى اللَّهِ",
+    "translation": "And when you have decided, then rely upon Allah.",
+    "theme": "Decisiveness & Trust",
+    "reflection": "Make your intention with diligence, take focused action, and place your trust in the outcome."
+  },
+  {
+    "id": "a5",
+    "surahName": "Surah Al-Ankabut",
+    "surahNumber": 29,
+    "ayahRange": "69",
+    "classification": "Meccan",
+    "arabic": "وَالَّذِينَ جَاهَدُوا فِينَا لَنَهْدِيَنَّهُمْ سُبُلَنَا",
+    "translation": "And those who strive for Us - We will surely guide them to Our ways.",
+    "theme": "Effort & Striving",
+    "reflection": "Every sincere effort toward personal growth and good deeds is met with divine clarity."
+  },
+  {
+    "id": "a6",
+    "surahName": "Surah Ad-Duha",
+    "surahNumber": 93,
+    "ayahRange": "3",
+    "classification": "Meccan",
+    "arabic": "مَا وَدَّعَكَ رَبُّكَ وَمَا قَلَىٰ",
+    "translation": "Your Lord has not taken leave of you, nor has He detested you.",
+    "theme": "Comfort",
+    "reflection": "Even in periods of quiet or stagnation, you are never abandoned."
+  },
+  {
+    "id": "a7",
+    "surahName": "Surah Ibrahim",
+    "surahNumber": 14,
+    "ayahRange": "7",
+    "classification": "Meccan",
+    "arabic": "لَئِن شَكَرْتُمْ لَأَزِيدَنَّكُمْ",
+    "translation": "If you are grateful, I will surely increase you [in favor].",
+    "theme": "Gratitude",
+    "reflection": "Gratitude expands blessings, opens doors to contentment, and elevates peace of mind."
+  },
+  {
+    "id": "a8",
+    "surahName": "Surah At-Talaq",
+    "surahNumber": 65,
+    "ayahRange": "3",
+    "classification": "Medinan",
+    "arabic": "وَمَن يَتَوَكَّلْ عَلَى اللَّهِ فَهُوَ حَسْبُهُ",
+    "translation": "And whoever relies upon Allah - then He is sufficient for him.",
+    "theme": "Reliance & Contentment",
+    "reflection": "When your reliance is rooted deeply, fear of circumstance fades into tranquility."
+  },
+  {
+    "id": "a9",
+    "surahName": "Surah Al-Baqarah",
+    "surahNumber": 2,
+    "ayahRange": "153",
+    "classification": "Medinan",
+    "arabic": "يَا أَيُّهَا الَّذِينَ آمَنُوا اسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ",
+    "translation": "O you who have believed, seek help through patience and prayer.",
+    "theme": "Patience & Devotion",
+    "reflection": "Patience is active perseverance coupled with spiritual stillness."
+  },
+  {
+    "id": "a10",
+    "surahName": "Surah Taha",
+    "surahNumber": 20,
+    "ayahRange": "114",
+    "classification": "Meccan",
+    "arabic": "رَّبِّ زِدْنِي عِلْمًا",
+    "translation": "My Lord, increase me in knowledge.",
+    "theme": "Seeking Knowledge",
+    "reflection": "A humble, continuous pursuit of wisdom and understanding opens life to true depth."
+  }
+]
